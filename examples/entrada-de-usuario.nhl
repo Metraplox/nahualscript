@@ -1,0 +1,7 @@
+sabiduria principal() {
+    energia numero := percibir("Ingrese un número: ");
+    energia resultado := numero multiplicar 2;
+    invocar resultado;
+}
+
+principal();

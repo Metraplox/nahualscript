@@ -1,0 +1,16 @@
+sabiduria principal() {
+    invocar "Ingrese un número:";
+    energia numero := percibir("");
+
+    vision (numero mayor 0) {
+        invocar "El número es positivo.";
+    }
+    vision (numero igual 0) {
+        invocar "El número es cero.";
+    }
+    vision (numero menor 0) {
+        invocar "El número es negativo.";
+    }
+}
+
+principal();

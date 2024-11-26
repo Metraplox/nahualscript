@@ -1,0 +1,49 @@
+sabiduria validar_medidas(energia medida) {
+    vision (medida menor 0) {
+        invocar "Error: La medida no puede ser negativa";
+        retornar falso;
+    }
+    retornar cierto;
+}
+
+sabiduria calcular_medidas(energia ancho, energia alto) {
+    // Validar primero
+    vision (no validar_medidas(ancho)) {
+        retornar 0;
+    }
+    vision (no validar_medidas(alto)) {
+        retornar 0;
+    }
+
+    // Calcular diferentes medidas
+    energia area := ancho multiplicar alto;
+    energia perimetro := (ancho unir alto) multiplicar 2;
+    energia diagonal := (ancho multiplicar ancho unir alto multiplicar alto);
+
+    // Mostrar resultados
+    invocar "Resultados para rectángulo de " unir ancho unir " x " unir alto;
+    invocar "Área: " unir area;
+    invocar "Perímetro: " unir perimetro;
+    invocar "Diagonal: " unir diagonal;
+}
+
+sabiduria principal() {
+    invocar "=== Calculadora de Rectángulos ===";
+
+    ritual(cierto) {
+        invocar "\nIngrese ancho (0 para salir): ";
+        energia ancho := percibir("");
+
+        vision (ancho igual 0) {
+            invocar "¡Hasta luego!";
+            retornar 0;
+        }
+
+        invocar "Ingrese alto: ";
+        energia alto := percibir("");
+
+        calcular_medidas(ancho, alto);
+    }
+}
+
+principal();

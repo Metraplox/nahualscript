@@ -1,0 +1,18 @@
+sabiduria principal() {
+    invocar "Ingrese un número inicial:";
+    energia numero := percibir("");
+
+    // Ciclo mientras
+    invocar "Se ejecutará el ciclo mientras el número sea menor a 10.";
+    ritual (numero menor 10) {
+        invocar "Número actual:";
+        invocar numero;
+
+        invocar "Ingrese el siguiente número:";
+        numero := percibir("");
+    }
+
+    invocar "El ciclo ha terminado.";
+}
+
+principal();

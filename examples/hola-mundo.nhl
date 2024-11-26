@@ -1,0 +1,8 @@
+sabiduria principal() {
+    // Prueba básica de asignación y operación
+    energia numero := 5;  // Probamos primero con un literal en vez de entrada
+    energia resultado := numero multiplicar 2;
+    invocar resultado;  // Debería mostrar 10
+}
+
+principal();

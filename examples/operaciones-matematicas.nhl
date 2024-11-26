@@ -1,0 +1,33 @@
+sabiduria principal() {
+    // Pedir números al usuario
+    invocar "Ingrese el primer número (a):";
+    energia a := percibir("");
+
+    invocar "Ingrese el segundo número (b):";
+    energia b := percibir("");
+
+    // Realizar operaciones matemáticas
+    energia suma := a unir b;           // Suma
+    energia resta := a separar b;       // Resta
+    energia producto := a multiplicar b; // Multiplicación
+    energia cociente := a dividir b;    // División
+    energia modulo := a residuo b;      // Módulo (Residuo)
+
+    // Mostrar resultados en líneas separadas
+    invocar "Suma:";
+    invocar suma;
+
+    invocar "Resta:";
+    invocar resta;
+
+    invocar "Producto:";
+    invocar producto;
+
+    invocar "Cociente:";
+    invocar cociente;
+
+    invocar "Residuo:";
+    invocar modulo;
+}
+
+principal();

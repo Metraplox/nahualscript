@@ -1,0 +1,2519 @@
+### Archivo: .\consolidate_project.py
+import os
+from datetime import datetime
+
+# Configuración
+PROJECT_DIR = "."  # Ruta relativa a la ubicación actual del script
+MAX_FILE_SIZE = 100_000  # Tamaño máximo de archivo a incluir (en bytes)
+INCLUDED_EXTENSIONS = {".py", ".nhl", ".txt"}  # Extensiones de archivos a incluir
+EXCLUDED_DIRS = {"venv"}  # Directorios a excluir
+
+# Generar nombre del archivo de salida con fecha y hora
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+OUTPUT_FILE = f"nahualscript_project_{timestamp}.txt"
+
+
+def consolidate_project(directory, output_file):
+    """
+    Recorre un proyecto, lee archivos relevantes y escribe su contenido en un archivo de salida.
+    """
+    with open(output_file, "w", encoding="utf-8") as out_file:
+        for root, dirs, files in os.walk(directory):
+            # Excluir directorios no deseados
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+
+            for file in files:
+                # Verificar si la extensión está permitida
+                if not any(file.endswith(ext) for ext in INCLUDED_EXTENSIONS):
+                    continue
+
+                file_path = os.path.join(root, file)
+                try:
+                    # Excluir archivos grandes
+                    if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                        print(f"Archivo muy grande omitido: {file_path}")
+                        continue
+
+                    with open(file_path, "r", encoding="utf-8") as in_file:
+                        out_file.write(f"### Archivo: {file_path}\n")
+                        out_file.write(in_file.read())
+                        out_file.write("\n\n")
+                        print(f"Archivo incluido: {file_path}")
+
+                except Exception as e:
+                    print(f"No se pudo procesar el archivo {file_path}: {e}")
+
+    print(f"Proyecto consolidado en {output_file}")
+
+
+# Ejecutar consolidación
+if __name__ == "__main__":
+    consolidate_project(PROJECT_DIR, OUTPUT_FILE)
+
+
+### Archivo: .\nahualscript_project_20241126_041401.txt
+
+
+### Archivo: .\nahual_setup.py
+#!/usr/bin/env python3
+"""
+NahualScript - Setup del Compilador
+----------------------------------
+Este script genera el ejecutable del compilador y configura el entorno.
+"""
+
+import os
+import sys
+from setuptools import setup, find_packages
+from setuptools.command.install import install
+
+NAHUAL_SCRIPT = '''#!/usr/bin/env python3
+import sys
+from nahual.interpreter import NahualInterpreter
+
+def mensaje_ayuda():
+    print("""🔮 NahualScript - Lenguaje de Programación Místico 🔮
+
+Uso: nahual <archivo.nhl> [opciones]
+Opciones:
+  --debug    Muestra información detallada de la ejecución
+  --help     Muestra este mensaje de ayuda
+    """)
+
+def main():
+    if len(sys.argv) < 2 or '--help' in sys.argv:
+        mensaje_ayuda()
+        sys.exit(0)
+
+    debug = '--debug' in sys.argv
+    archivo = sys.argv[1]
+
+    try:
+        with open(archivo, 'r', encoding='utf-8') as f:
+            codigo = f.read()
+
+        print("🌟 Iniciando ritual de compilación...")
+        interprete = NahualInterpreter(debug=debug)
+        resultado = interprete.run(codigo)
+        print("✨ Ritual completado exitosamente")
+        return resultado
+
+    except FileNotFoundError:
+        print(f"❌ Error: No se encuentra el grimorio {archivo}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💫 Error en el ritual: {str(e)}")
+        if debug:
+            raise
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
+'''
+
+
+class InstalarNahual(install):
+    def run(self):
+        # Ejecutar instalación normal
+        install.run(self)
+
+        # Crear ejecutable
+        bin_dir = os.path.join(sys.prefix, 'bin')
+        os.makedirs(bin_dir, exist_ok=True)
+        ejecutable = os.path.join(bin_dir, 'nahual')
+
+        with open(ejecutable, 'w') as f:
+            f.write(NAHUAL_SCRIPT)
+
+        os.chmod(ejecutable, 0o755)
+        print("🎭 NahualScript instalado exitosamente")
+
+
+setup(
+    name="nahualscript",
+    version="1.0.0",
+    description="Lenguaje de programación místico",
+    author="Estudiantes UCN",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    install_requires=[
+        "ply>=3.11",
+        "pytest>=7.4.0",
+        "pytest-cov>=4.1.0"
+    ],
+    cmdclass={
+        'install': InstalarNahual,
+    },
+    entry_points={
+        'console_scripts': [
+            'nahual=nahual.__main__:main',
+        ],
+    },
+    python_requires=">=3.8",
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Education",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Software Development :: Compilers",
+    ]
+)
+
+### Archivo: .\requirements.txt
+ply>=3.11
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+pylint>=2.17.5
+
+### Archivo: .\setup.py
+from setuptools import setup, find_packages
+
+setup(
+    name="nahualscript",
+    version="0.1.0",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    install_requires=[
+        "ply>=3.11",
+    ],
+    entry_points={
+        "console_scripts": [
+            "nahual=nahual.__main__:main",
+        ],
+    },
+    python_requires=">=3.8",
+)
+
+### Archivo: .\setup_windows.py
+#!/usr/bin/env python3
+import os
+import sys
+from setuptools import setup, find_packages
+from setuptools.command.install import install
+
+
+class InstallNahual(install):
+    def run(self):
+        install.run(self)
+        # Crear ejecutable para Windows
+        bin_dir = os.path.join(sys.prefix, 'Scripts')
+        os.makedirs(bin_dir, exist_ok=True)
+        ejecutable = os.path.join(bin_dir, 'nahual.exe')
+
+        with open(os.path.join(bin_dir, 'nahual-script.py'), 'w') as f:
+            f.write('''#!/usr/bin/env python3
+import sys
+from nahual.interpreter import NahualInterpreter
+
+def mensaje_ayuda():
+    print("""🔮 NahualScript - Lenguaje de Programación Místico 🔮
+
+Uso: nahual <archivo.nhl> [opciones]
+Opciones:
+  --debug    Muestra información detallada de la ejecución
+  --help     Muestra este mensaje de ayuda
+    """)
+
+def main():
+    if len(sys.argv) < 2 or "--help" in sys.argv:
+        mensaje_ayuda()
+        sys.exit(0)
+
+    debug = "--debug" in sys.argv
+    archivo = sys.argv[1]
+
+    try:
+        with open(archivo, "r", encoding="utf-8") as f:
+            codigo = f.read()
+
+        print("🌟 Iniciando ritual de compilación...")
+        interprete = NahualInterpreter(debug=debug)
+        resultado = interprete.run(codigo)
+        print("✨ Ritual completado exitosamente")
+        return resultado
+
+    except FileNotFoundError:
+        print(f"❌ Error: No se encuentra el grimorio {archivo}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💫 Error en el ritual: {str(e)}")
+        if debug:
+            raise
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+''')
+
+        # Crear batch file para Windows
+        with open(os.path.join(bin_dir, 'nahual.bat'), 'w') as f:
+            f.write(f'@echo off\npython "{os.path.join(bin_dir, "nahual-script.py")}" %*')
+
+        print("🎭 NahualScript instalado exitosamente")
+
+
+setup(
+    name="nahualscript",
+    version="1.0.0",
+    description="Lenguaje de programación místico",
+    author="Estudiantes UCN",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    install_requires=[
+        "ply>=3.11",
+        "pytest>=7.4.0",
+        "pytest-cov>=4.1.0"
+    ],
+    cmdclass={
+        'install': InstallNahual,
+    },
+    entry_points={
+        'console_scripts': [
+            'nahual=nahual.__main__:main',
+        ],
+    },
+    python_requires=">=3.8",
+)
+
+### Archivo: .\test.nhl
+sabiduria principal() {
+    invocar "Ingrese un número inicial:";
+    energia numero := percibir("");
+
+    // Ciclo mientras
+    invocar "Se ejecutará el ciclo mientras el número sea menor a 10.";
+    ritual (numero menor 10) {
+        invocar "Número actual:";
+        invocar numero;
+
+        invocar "Ingrese el siguiente número:";
+        numero := percibir("");
+    }
+
+    invocar "El ciclo ha terminado.";
+}
+
+principal();
+
+
+### Archivo: .\examples\calc-area.nhl
+sabiduria validar_medidas(energia medida) {
+    vision (medida menor 0) {
+        invocar "Error: La medida no puede ser negativa";
+        retornar falso;
+    }
+    retornar cierto;
+}
+
+sabiduria calcular_medidas(energia ancho, energia alto) {
+    // Validar primero
+    vision (no validar_medidas(ancho)) {
+        retornar 0;
+    }
+    vision (no validar_medidas(alto)) {
+        retornar 0;
+    }
+
+    // Calcular diferentes medidas
+    energia area := ancho multiplicar alto;
+    energia perimetro := (ancho unir alto) multiplicar 2;
+    energia diagonal := (ancho multiplicar ancho unir alto multiplicar alto);
+
+    // Mostrar resultados
+    invocar "Resultados para rectángulo de " unir ancho unir " x " unir alto;
+    invocar "Área: " unir area;
+    invocar "Perímetro: " unir perimetro;
+    invocar "Diagonal: " unir diagonal;
+}
+
+sabiduria principal() {
+    invocar "=== Calculadora de Rectángulos ===";
+
+    ritual(cierto) {
+        invocar "\nIngrese ancho (0 para salir): ";
+        energia ancho := percibir("");
+
+        vision (ancho igual 0) {
+            invocar "¡Hasta luego!";
+            retornar 0;
+        }
+
+        invocar "Ingrese alto: ";
+        energia alto := percibir("");
+
+        calcular_medidas(ancho, alto);
+    }
+}
+
+principal();
+
+### Archivo: .\examples\entrada-de-usuario.nhl
+sabiduria principal() {
+    energia numero := percibir("Ingrese un número: ");
+    energia resultado := numero multiplicar 2;
+    invocar resultado;
+}
+
+principal();
+
+### Archivo: .\examples\hola-mundo.nhl
+sabiduria principal() {
+    // Prueba básica de asignación y operación
+    energia numero := 5;  // Probamos primero con un literal en vez de entrada
+    energia resultado := numero multiplicar 2;
+    invocar resultado;  // Debería mostrar 10
+}
+
+principal();
+
+### Archivo: .\examples\if-igual-mayor-menor-que.nhl
+sabiduria principal() {
+    invocar "Ingrese un número:";
+    energia numero := percibir("");
+
+    vision (numero mayor 0) {
+        invocar "El número es positivo.";
+    }
+    vision (numero igual 0) {
+        invocar "El número es cero.";
+    }
+    vision (numero menor 0) {
+        invocar "El número es negativo.";
+    }
+}
+
+principal();
+
+
+### Archivo: .\examples\operaciones-matematicas.nhl
+sabiduria principal() {
+    // Pedir números al usuario
+    invocar "Ingrese el primer número (a):";
+    energia a := percibir("");
+
+    invocar "Ingrese el segundo número (b):";
+    energia b := percibir("");
+
+    // Realizar operaciones matemáticas
+    energia suma := a unir b;           // Suma
+    energia resta := a separar b;       // Resta
+    energia producto := a multiplicar b; // Multiplicación
+    energia cociente := a dividir b;    // División
+    energia modulo := a residuo b;      // Módulo (Residuo)
+
+    // Mostrar resultados en líneas separadas
+    invocar "Suma:";
+    invocar suma;
+
+    invocar "Resta:";
+    invocar resta;
+
+    invocar "Producto:";
+    invocar producto;
+
+    invocar "Cociente:";
+    invocar cociente;
+
+    invocar "Residuo:";
+    invocar modulo;
+}
+
+principal();
+
+
+### Archivo: .\src\main.py
+import sys
+from pathlib import Path
+
+
+def mensaje_ayuda():
+    print("""🔮 NahualScript - Lenguaje de Programación Místico 🔮
+
+Uso: python -m nahual <archivo.nhl> [opciones]
+Opciones:
+  --debug    Muestra información detallada de la ejecución
+  --help     Muestra este mensaje de ayuda
+    """)
+
+
+def main():
+    if len(sys.argv) < 2 or "--help" in sys.argv:
+        mensaje_ayuda()
+        sys.exit(0)
+
+    debug = "--debug" in sys.argv
+    archivo = sys.argv[1]
+
+    try:
+        with open(archivo, "r", encoding="utf-8") as f:
+            codigo = f.read()
+
+        from nahual.interpreter import NahualInterpreter
+        print("🌟 Iniciando ritual de compilación...")
+        interprete = NahualInterpreter(debug=debug)
+        resultado = interprete.run(codigo)
+        print("✨ Ritual completado exitosamente")
+        return resultado
+
+    except FileNotFoundError:
+        print(f"❌ Error: No se encuentra el grimorio {archivo}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💫 Error en el ritual: {str(e)}")
+        if debug:
+            raise
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+
+### Archivo: .\src\nahual\environment.py
+from .types import Valor
+
+class Environment:
+    def __init__(self, parent=None):
+        self.variables: Dict[str, Valor] = {}
+        self.funciones: Dict[str, 'Funcion'] = {}
+        self.parent = parent
+
+    def definir_variable(self, nombre: str, valor: Valor) -> None:
+        self.variables[nombre] = valor
+
+    def definir_funcion(self, nombre: str, funcion: 'Funcion') -> None:
+        self.funciones[nombre] = funcion
+
+    def obtener_variable(self, nombre: str) -> Valor:
+        if nombre in self.variables:
+            return self.variables[nombre]
+        if self.parent:
+            return self.parent.obtener_variable(nombre)
+        raise NameError(f"Variable no definida: {nombre}")
+
+    def obtener_funcion(self, nombre: str) -> 'Funcion':
+        if nombre in self.funciones:
+            return self.funciones[nombre]
+        if self.parent:
+            return self.parent.obtener_funcion(nombre)
+        raise NameError(f"Función no definida: {nombre}")
+
+### Archivo: .\src\nahual\error_handler.py
+# src/nahual/error_handler.py
+
+from dataclasses import dataclass
+from typing import Optional, List, Dict, Any
+import traceback
+
+
+@dataclass
+class LexPosition:
+    """Representa una posición en el código fuente durante el análisis léxico."""
+    line: int
+    column: int
+
+    def __str__(self) -> str:
+        return f"línea {self.line}, columna {self.column}"
+
+
+@dataclass
+class LexError:
+    """Representa un error durante el análisis léxico."""
+    message: str
+    position: LexPosition
+    severity: str = "ERROR"
+
+    def __str__(self) -> str:
+        return f"{self.severity} en {self.position}: {self.message}"
+
+
+@dataclass
+class Ubicacion:
+    """Representa una ubicación en el código fuente."""
+    linea: int
+    columna: int
+    archivo: str = '<desconocido>'
+    contexto: Optional[str] = None
+
+    def __str__(self) -> str:
+        base = f"línea {self.linea}, columna {self.columna}"
+        if self.archivo != '<desconocido>':
+            base = f"{self.archivo}:{base}"
+        if self.contexto:
+            base += f"\n  {self.contexto}"
+        return base
+
+
+@dataclass
+class MarcoEjecucion:
+    """Representa un marco en la pila de ejecución."""
+    nombre: str
+    ubicacion: Ubicacion
+    variables: Dict[str, Any] = None
+
+    def __str__(self) -> str:
+        resultado = f"  en {self.nombre} ({self.ubicacion})"
+        if self.variables:
+            vars_str = ", ".join(f"{k}={v}" for k, v in self.variables.items())
+            resultado += f"\n    variables locales: {vars_str}"
+        return resultado
+
+
+class ErrorNahual(Exception):
+    """Clase base para todos los errores de NahualScript."""
+
+    def __init__(
+            self,
+            mensaje: str,
+            ubicacion: Optional[Ubicacion] = None,
+            pila: List[MarcoEjecucion] = None,
+            sugerencia: Optional[str] = None
+    ):
+        self.mensaje = mensaje
+        self.ubicacion = ubicacion
+        self.pila = pila or []
+        self.sugerencia = sugerencia
+        super().__init__(self.formatear_error())
+
+    def formatear_error(self) -> str:
+        partes = [
+            "🔮 Error en el Ritual Místico 🔮",
+            f"📜 {self.mensaje}"
+        ]
+
+        if self.ubicacion:
+            partes.append(f"📍 Ubicación: {self.ubicacion}")
+
+        if self.pila:
+            partes.append("\n🔍 Rastro del ritual:")
+            for marco in reversed(self.pila):
+                partes.append(str(marco))
+
+        if self.sugerencia:
+            partes.append(f"\n💫 Sugerencia mística: {self.sugerencia}")
+
+        return "\n".join(partes)
+
+
+class ErrorSintaxis(ErrorNahual):
+    """Error en la estructura del código."""
+
+    def __init__(self, mensaje: str, ubicacion: Optional[Ubicacion] = None, **kwargs):
+        sugerencia = kwargs.pop('sugerencia', "Revisa la estructura de tu ritual")
+        super().__init__(
+            mensaje,
+            ubicacion=ubicacion,
+            sugerencia=sugerencia,
+            **kwargs
+        )
+
+
+class ErrorSemantico(ErrorNahual):
+    """Error en el significado o lógica del código."""
+    pass
+
+
+class ErrorTipos(ErrorNahual):
+    """Error de tipos en el código."""
+
+    def __init__(self, mensaje: str, tipo_esperado: str, tipo_recibido: str, **kwargs):
+        super().__init__(
+            mensaje,
+            sugerencia=f"Se esperaba una energía de tipo {tipo_esperado}",
+            **kwargs
+        )
+        self.tipo_esperado = tipo_esperado
+        self.tipo_recibido = tipo_recibido
+
+
+class ErrorEjecucion(ErrorNahual):
+    """Error durante la ejecución del programa."""
+    pass
+
+
+def decorar_manejo_errores(metodo):
+    """Decorador para manejar errores en métodos del intérprete."""
+
+    def wrapper(self, *args, **kwargs):
+        try:
+            return metodo(self, *args, **kwargs)
+        except ErrorNahual as e:
+            if hasattr(self, 'debug') and self.debug:
+                print("\nTraza completa para depuración:")
+                traceback.print_exc()
+            print(str(e))
+            return None
+        except Exception as e:
+            error = ErrorEjecucion(
+                f"Error inesperado: {str(e)}",
+                sugerencia="Contacta a los ancianos sabios (desarrolladores)"
+            )
+            print(str(error))
+            if hasattr(self, 'debug') and self.debug:
+                traceback.print_exc()
+            return None
+
+    return wrapper
+
+
+class ManejadorErrores:
+    """Clase para manejar y coleccionar errores durante la ejecución."""
+
+    def __init__(self):
+        self.errores: List[ErrorNahual] = []
+        self.ubicacion_actual: Optional[Ubicacion] = None
+        self.pila: List[MarcoEjecucion] = []
+
+    def registrar_error(self, error: ErrorNahual) -> None:
+        """Registra un error y lo agrega a la lista de errores."""
+        if not error.ubicacion:
+            error.ubicacion = self.ubicacion_actual
+        if not error.pila:
+            error.pila = self.pila.copy()
+        self.errores.append(error)
+
+    def tiene_errores(self) -> bool:
+        """Retorna True si hay errores registrados."""
+        return len(self.errores) > 0
+
+    def obtener_errores(self) -> List[str]:
+        """Retorna lista de errores formateados."""
+        return [str(error) for error in self.errores]
+
+    def limpiar(self) -> None:
+        """Limpia todos los errores registrados."""
+        self.errores.clear()
+
+### Archivo: .\src\nahual\function.py
+from dataclasses import dataclass
+from typing import List, Any, Optional
+
+from .parser import NahualParser
+from .types import TipoNahual, Valor, TipoError, Lista
+from .environment import Environment
+from .error_handler import ErrorSemantico
+
+
+class Funcion:
+    pass
+
+
+class NahualInterpreter:
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.parser = NahualParser(debug)
+        self.entorno_global = Environment()
+        self.entorno_actual = self.entorno_global
+        self.stack = []
+        self._inicializar_funciones_base()
+
+    def _inicializar_funciones_base(self):
+        def invocar(*args):
+            print(*[str(arg) for arg in args])
+
+        def percibir(mensaje: str = "") -> str:
+            return Valor(TipoNahual.MANTRA, input(mensaje))
+
+        def longitud(coleccion: Valor) -> Valor:
+            if coleccion.tipo == TipoNahual.LISTA:
+                return Valor(TipoNahual.ESPIRITU, coleccion.valor.longitud())
+            elif coleccion.tipo == TipoNahual.MANTRA:
+                return Valor(TipoNahual.ESPIRITU, len(coleccion.valor))
+            raise TipoError(f"Tipo {coleccion.tipo} no soporta longitud")
+
+        self.entorno_global.definir_funcion("invocar", Funcion("invocar", [], invocar, self.entorno_global))
+        self.entorno_global.definir_funcion("percibir",
+                                            Funcion("percibir", [("mantra", "mensaje")], percibir, self.entorno_global))
+        self.entorno_global.definir_funcion("longitud", Funcion("longitud", [("generico", "coleccion")], longitud,
+                                                                self.entorno_global))
+
+    def ejecutar(self, nodo: Any) -> Valor:
+        metodo = getattr(self, f'ejecutar_{nodo[0]}', None)
+        if metodo:
+            return metodo(*nodo[1:])
+        raise NotImplementedError(f"No se puede ejecutar nodo de tipo {nodo[0]}")
+
+    def ejecutar_programa(self, declaraciones: List) -> Valor:
+        resultado = None
+        for decl in declaraciones:
+            resultado = self.ejecutar(decl)
+        return resultado
+
+    def ejecutar_con_entorno(self, nodo: Any, entorno: Environment) -> Valor:
+        entorno_anterior = self.entorno_actual
+        self.entorno_actual = entorno
+        try:
+            return self.ejecutar(nodo)
+        finally:
+            self.entorno_actual = entorno_anterior
+
+    def ejecutar_operacion(self, op: str, izq: Any, der: Any) -> Valor:
+        val_izq = self.ejecutar(izq)
+        val_der = self.ejecutar(der)
+
+        operaciones = {
+            'unir': lambda x, y: Valor(x.tipo, x.valor + y.valor),
+            'separar': lambda x, y: Valor(x.tipo, x.valor - y.valor),
+            'multiplicar': lambda x, y: Valor(x.tipo, x.valor * y.valor),
+            'dividir': lambda x, y: Valor(x.tipo, x.valor / y.valor),
+            'residuo': lambda x, y: Valor(x.tipo, x.valor % y.valor),
+            'igual': lambda x, y: Valor(TipoNahual.VERDAD, x.valor == y.valor),
+            'mayor': lambda x, y: Valor(TipoNahual.VERDAD, x.valor > y.valor),
+            'menor': lambda x, y: Valor(TipoNahual.VERDAD, x.valor < y.valor)
+        }
+
+        if op not in operaciones:
+            raise ValueError(f"Operación desconocida: {op}")
+
+        return operaciones[op](val_izq, val_der)
+
+    def ejecutar_vision(self, condicion: Any, verdadero: Any, falso: Optional[Any]) -> Valor:
+        cond_valor = self.ejecutar(condicion)
+        if not isinstance(cond_valor, Valor) or cond_valor.tipo != TipoNahual.VERDAD:
+            raise TipoError("La condición debe ser una verdad")
+
+        if cond_valor.valor:
+            return self.ejecutar(verdadero)
+        elif falso:
+            return self.ejecutar(falso)
+        return None
+
+    def ejecutar_ritual(self, condicion: Any, cuerpo: Any) -> None:
+        while True:
+            cond_valor = self.ejecutar(condicion)
+            if not isinstance(cond_valor, Valor) or cond_valor.tipo != TipoNahual.VERDAD:
+                raise TipoError("La condición debe ser una verdad")
+
+            if not cond_valor.valor:
+                break
+
+            self.ejecutar(cuerpo)
+
+    def ejecutar_var_declaracion(self, tipo: str, nombre: str, valor: Any) -> None:
+        valor_ejecutado = self.ejecutar(valor)
+        if not valor_ejecutado.es_compatible_con(Valor(TipoNahual(tipo), None)):
+            raise TipoError(
+                f"Tipo inválido para variable {nombre}. Se esperaba {tipo}, se recibió {valor_ejecutado.tipo}")
+        self.entorno_actual.definir_variable(nombre, valor_ejecutado)
+
+    def ejecutar_funcion_declaracion(self, nombre: str, parametros: List[tuple], cuerpo: Any) -> None:
+        funcion = Funcion(nombre, parametros, cuerpo, self.entorno_actual)
+        self.entorno_actual.definir_funcion(nombre, funcion)
+
+    def ejecutar_llamada_funcion(self, nombre: str, argumentos: List[Any]) -> Valor:
+        funcion = self.entorno_actual.obtener_funcion(nombre)
+        argumentos_ejecutados = [self.ejecutar(arg) for arg in argumentos]
+        return funcion.ejecutar(self, argumentos_ejecutados)
+
+    def ejecutar_lista_literal(self, elementos: List[Any]) -> Valor:
+        valores = [self.ejecutar(elem) for elem in elementos]
+        tipo_comun = valores[0].tipo if valores else None
+        if tipo_comun and all(v.tipo == tipo_comun for v in valores):
+            lista = Lista(valores, tipo_comun)
+        else:
+            lista = Lista(valores)
+        return Valor(TipoNahual.LISTA, lista)
+
+    def ejecutar_acceso_lista(self, lista: Any, indice: Any) -> Valor:
+        valor_lista = self.ejecutar(lista)
+        if valor_lista.tipo != TipoNahual.LISTA:
+            raise TipoError(f"No se puede acceder por índice a tipo {valor_lista.tipo}")
+
+        valor_indice = self.ejecutar(indice)
+        if valor_indice.tipo != TipoNahual.ESPIRITU:
+            raise TipoError("El índice debe ser un espiritu (entero)")
+
+        return valor_lista.valor.obtener(valor_indice.valor)
+
+    def ejecutar_llamada_metodo(self, objeto: Any, metodo: str, args: List[Any]) -> Valor:
+        valor_objeto = self.ejecutar(objeto)
+        args_evaluados = [self.ejecutar(arg) for arg in args]
+
+        if valor_objeto.tipo == TipoNahual.LISTA:
+            lista = valor_objeto.valor
+            if metodo == 'agregar':
+                if len(args_evaluados) != 1:
+                    raise ErrorSemantico("El método agregar requiere un argumento")
+                lista.agregar(args_evaluados[0])
+                return Valor(TipoNahual.VERDAD, True)
+            elif metodo == 'longitud':
+                if args_evaluados:
+                    raise ErrorSemantico("El método longitud no acepta argumentos")
+                return Valor(TipoNahual.ESPIRITU, lista.longitud())
+            else:
+                raise ErrorSemantico(f"Método {metodo} no definido para listas")
+
+        raise ErrorSemantico(f"Tipo {valor_objeto.tipo} no soporta métodos")
+
+    def ejecutar_expr_aritmetica(self, operador: str, izq: Any, der: Any) -> Valor:
+        return self.ejecutar_operacion(operador, izq, der)
+
+    def ejecutar_expr_logica(self, operador: str, izq: Any, der: Any) -> Valor:
+        return self.ejecutar_operacion(operador, izq, der)
+
+    def ejecutar_expr_relacional(self, operador: str, izq: Any, der: Any) -> Valor:
+        return self.ejecutar_operacion(operador, izq, der)
+
+    def ejecutar_literal(self, valor: Any) -> Valor:
+        if isinstance(valor, int):
+            return Valor(TipoNahual.ESPIRITU, valor)
+        elif isinstance(valor, float):
+            return Valor(TipoNahual.ENERGIA, valor)
+        elif isinstance(valor, str):
+            return Valor(TipoNahual.MANTRA, valor)
+        elif isinstance(valor, bool):
+            return Valor(TipoNahual.VERDAD, valor)
+        else:
+            raise ValueError(f"Tipo de literal desconocido: {type(valor)}")
+
+    def ejecutar_variable(self, nombre: str) -> Valor:
+        return self.entorno_actual.obtener_variable(nombre)
+
+    def run(self, source: str) -> None:
+        nodos = self.parser.parse(source)
+        self.ejecutar_programa(nodos)
+
+### Archivo: .\src\nahual\interpreter.py
+# src/nahual/interpreter.py
+
+from typing import Any, List, Optional, Dict
+from .types import TipoNahual, Valor, TipoError, Lista
+from .environment import Environment
+from .error_handler import (
+    ErrorNahual, ErrorSemantico, ErrorTipos, ErrorEjecucion,
+    Ubicacion, MarcoEjecucion, decorar_manejo_errores, ManejadorErrores
+)
+
+
+class NahualInterpreter:
+    """Intérprete principal para NahualScript."""
+
+    def __init__(self, debug: bool = False):
+        self.debug = debug
+        self.entorno_global = Environment()
+        self.entorno_actual = self.entorno_global
+        self.manejador_errores = ManejadorErrores()
+        self._inicializar_funciones_base()
+
+    def _inicializar_funciones_base(self):
+        """Inicializa las funciones nativas del lenguaje."""
+
+        def invocar(*args) -> None:
+            """Función para imprimir valores."""
+            print(*[str(arg.valor) for arg in args])
+
+        def percibir(mensaje: str = "") -> Valor:
+            """Función para recibir entrada del usuario."""
+            try:
+                valor = input(mensaje)
+                return Valor(TipoNahual.MANTRA, valor)
+            except Exception as e:
+                raise ErrorEjecucion(
+                    "Error al leer entrada",
+                    sugerencia="Verifica que la entrada sea válida"
+                )
+
+        def convertir(valor: Valor, tipo_destino: str) -> Valor:
+            """Función para convertir un valor a un tipo específico."""
+            try:
+                tipo_destino_obj = TipoNahual(tipo_destino)
+                return valor.convertir_a(tipo_destino_obj)
+            except TipoError as e:
+                raise ErrorTipos(
+                    f"No se puede convertir {valor.tipo.value} a {tipo_destino}",
+                    tipo_esperado=tipo_destino,
+                    tipo_recibido=valor.tipo.value
+                )
+            except ValueError:
+                raise ErrorSemantico(f"Tipo desconocido: {tipo_destino}")
+
+        def longitud(coleccion: Valor) -> Valor:
+            """Calcula la longitud de una colección (lista o cadena)."""
+            if coleccion.tipo == TipoNahual.LISTA:
+                return Valor(TipoNahual.ESPIRITU, len(coleccion.valor))
+            elif coleccion.tipo == TipoNahual.MANTRA:
+                return Valor(TipoNahual.ESPIRITU, len(coleccion.valor))
+            raise TipoError(f"Tipo {coleccion.tipo} no soporta longitud")
+
+        # Registrar funciones nativas en el entorno global
+        self._registrar_funcion_nativa("invocar", invocar)
+        self._registrar_funcion_nativa("percibir", percibir)
+        self._registrar_funcion_nativa("convertir", convertir)
+        self._registrar_funcion_nativa("longitud", longitud)
+
+    def _registrar_funcion_nativa(self, nombre: str, funcion: Any) -> None:
+        """Registra una función nativa en el entorno global."""
+        self.entorno_global.definir_funcion(nombre, funcion)
+
+    def ejecutar(self, nodo: Any) -> Optional[Valor]:
+        """Ejecuta un nodo del AST."""
+        if nodo is None:
+            return None
+
+        if isinstance(nodo, tuple):
+            tipo_nodo = nodo[0]
+            if tipo_nodo == 'bloque':
+                return self.ejecutar_bloque(nodo[1], nodo[2] if len(nodo) > 2 else None)
+            elif tipo_nodo == 'variable':
+                return self.entorno_actual.obtener_variable(nodo[1])
+            metodo = getattr(self, f'ejecutar_{tipo_nodo}', None)
+            if metodo:
+                return metodo(*nodo[1:])
+            raise NotImplementedError(f"No se puede ejecutar nodo de tipo {tipo_nodo}")
+
+        return nodo
+
+    @decorar_manejo_errores
+    def ejecutar_programa(self, nodo: Any) -> Valor:
+        """Ejecuta un nodo de tipo 'programa'."""
+        declaraciones = nodo[1]  # Extrae las declaraciones del nodo
+        resultado = None
+        for declaracion in declaraciones:
+            resultado = self.ejecutar(declaracion)
+        return resultado
+
+    @decorar_manejo_errores
+    def ejecutar_var_declaracion(self, tipo: str, nombre: str, valor: Any, ubicacion: Optional[dict] = None) -> None:
+        """Ejecuta una declaración de variable."""
+        if isinstance(valor, str) and valor == 'percibir':
+            try:
+                entrada = input()
+                if tipo == 'energia':
+                    valor_ejecutado = Valor(TipoNahual.ENERGIA, float(entrada))
+                elif tipo == 'espiritu':
+                    valor_ejecutado = Valor(TipoNahual.ESPIRITU, int(entrada))
+                else:
+                    valor_ejecutado = Valor(TipoNahual.MANTRA, entrada)
+            except ValueError:
+                raise ErrorTipos(
+                    f"No se puede convertir la entrada a {tipo}",
+                    tipo_esperado=tipo,
+                    tipo_recibido="entrada inválida"
+                )
+        else:
+            valor_ejecutado = self.ejecutar(valor)
+            if not valor_ejecutado:
+                return None
+
+        try:
+            tipo_nahual = TipoNahual(tipo)
+            if not valor_ejecutado.es_compatible_con(Valor(tipo_nahual, None)):
+                raise ErrorTipos(
+                    f"Tipo incompatible en asignación a '{nombre}'",
+                    tipo_esperado=tipo,
+                    tipo_recibido=valor_ejecutado.tipo.value
+                )
+            self.entorno_actual.definir_variable(nombre, valor_ejecutado)
+        except ValueError:
+            raise ErrorSemantico(f"Tipo desconocido: {tipo}")
+    @decorar_manejo_errores
+    def ejecutar_funcion_declaracion(self, nombre: str, parametros: List[tuple], cuerpo: Any,
+                                     ubicacion: Optional[dict]) -> None:
+        """Ejecuta una declaración de función."""
+        funcion = {
+            'parametros': parametros,
+            'cuerpo': cuerpo,
+            'entorno': self.entorno_actual,
+            'ubicacion': ubicacion  # Guarda la ubicación para rastreo de errores
+        }
+        self.entorno_actual.definir_funcion(nombre, funcion)
+
+    @decorar_manejo_errores
+    def ejecutar_llamada_funcion(self, nombre: str, argumentos: List[Any], ubicacion: Optional[dict] = None) -> \
+    Optional[Valor]:
+        """
+        Executes a function call by resolving its name and evaluating arguments.
+        """
+        try:
+            funcion = self.entorno_actual.obtener_funcion(nombre)
+            args_evaluados = [self.ejecutar(arg) for arg in argumentos]
+
+            if None in args_evaluados:
+                return None
+
+            nuevo_entorno = Environment(funcion['entorno'])
+            for (tipo, param_nombre), arg in zip(funcion['parametros'], args_evaluados):
+                if not arg.es_compatible_con(Valor(TipoNahual(tipo), None)):
+                    raise ErrorTipos(
+                        f"Argumento inválido para parámetro '{param_nombre}'",
+                        tipo_esperado=tipo,
+                        tipo_recibido=arg.tipo.value
+                    )
+                nuevo_entorno.definir_variable(param_nombre, arg)
+
+            return self.ejecutar_con_entorno(funcion['cuerpo'], nuevo_entorno)
+        except KeyError:
+            raise ErrorSemantico(f"Función no definida: {nombre}")
+        except Exception as e:
+            raise ErrorEjecucion(
+                f"Error al ejecutar la función '{nombre}': {str(e)}",
+                sugerencia="Revisa la definición de la función y los argumentos proporcionados"
+            )
+
+    def ejecutar_operacion(self, op: str, izq: Any, der: Any, ubicacion: Optional[dict] = None) -> Optional[Valor]:
+        """Ejecuta una operación binaria."""
+        val_izq = self.ejecutar(izq)
+        if val_izq is None:
+            return None
+
+        val_der = self.ejecutar(der)
+        if val_der is None:
+            return None
+
+        try:
+            # Operaciones numéricas
+            if op == 'unir':
+                # Solo para números
+                if val_izq.tipo in {TipoNahual.ESPIRITU, TipoNahual.ENERGIA} and val_der.tipo in {TipoNahual.ESPIRITU,
+                                                                                                  TipoNahual.ENERGIA}:
+                    resultado = val_izq.valor + val_der.valor
+                    tipo_resultado = TipoNahual.ENERGIA if TipoNahual.ENERGIA in {val_izq.tipo,
+                                                                                  val_der.tipo} else TipoNahual.ESPIRITU
+                    return Valor(tipo_resultado, resultado)
+                raise TipoError(f"Operación unir solo admite valores numéricos (ESPIRITU o ENERGIA)")
+
+            # Otras operaciones
+            elif op == 'separar':
+                resultado = val_izq.valor - val_der.valor
+                tipo_resultado = TipoNahual.ENERGIA if TipoNahual.ENERGIA in {val_izq.tipo,
+                                                                              val_der.tipo} else TipoNahual.ESPIRITU
+                return Valor(tipo_resultado, resultado)
+            elif op == 'multiplicar':
+                resultado = val_izq.valor * val_der.valor
+                tipo_resultado = TipoNahual.ENERGIA if TipoNahual.ENERGIA in {val_izq.tipo,
+                                                                              val_der.tipo} else TipoNahual.ESPIRITU
+                return Valor(tipo_resultado, resultado)
+            elif op == 'dividir':
+                if val_der.valor == 0:
+                    raise ErrorEjecucion("División por cero")
+                resultado = val_izq.valor / val_der.valor
+                tipo_resultado = TipoNahual.ENERGIA
+                return Valor(tipo_resultado, resultado)
+            elif op == 'residuo':
+                resultado = val_izq.valor % val_der.valor
+                tipo_resultado = TipoNahual.ESPIRITU
+                return Valor(tipo_resultado, resultado)
+
+            # Operaciones de comparación
+            elif op in ['mayor', 'menor', 'igual']:
+                if not val_izq.es_compatible_con(val_der):
+                    raise TipoError(f"No se pueden comparar valores de tipo {val_izq.tipo} y {val_der.tipo}")
+
+                if op == 'mayor':
+                    resultado = val_izq.valor > val_der.valor
+                elif op == 'menor':
+                    resultado = val_izq.valor < val_der.valor
+                else:  # igual
+                    resultado = val_izq.valor == val_der.valor
+
+                return Valor(TipoNahual.VERDAD, resultado)
+
+            raise ValueError(f"Operador no soportado: {op}")
+
+        except Exception as e:
+            raise ErrorEjecucion(f"Error en operación {op}: {str(e)}", ubicacion)
+
+    def ejecutar_ritual(self, condicion: Any, cuerpo: Any, ubicacion: Optional[dict] = None) -> None:
+        """
+        Ejecuta un ciclo `ritual` (equivalente a un `mientras`).
+        """
+        try:
+            while True:
+                # Evalúa la condición del ciclo
+                cond_valor = self.ejecutar(condicion)
+                if cond_valor is None or cond_valor.tipo != TipoNahual.VERDAD:
+                    raise ErrorTipos(
+                        f"La condición debe ser una verdad",
+                        tipo_esperado="verdad",
+                        tipo_recibido=cond_valor.tipo.value if cond_valor else "None"
+                    )
+
+                # Si la condición es falsa, sale del ciclo
+                if not cond_valor.valor:
+                    break
+
+                # Ejecuta el cuerpo del ciclo
+                self.ejecutar(cuerpo)
+
+        except Exception as e:
+            raise ErrorEjecucion(
+                f"Error en el ciclo ritual: {str(e)}",
+                ubicacion=ubicacion
+            )
+
+    def ejecutar_vision(self, condicion: Any, verdadero: Any, falso: Any, ubicacion: Optional[dict] = None) -> Optional[
+        Valor]:
+        """Ejecuta una declaración vision (if-else)."""
+        try:
+            cond_valor = self.ejecutar(condicion)
+            if cond_valor is None:
+                return None
+
+            if cond_valor.tipo != TipoNahual.VERDAD:
+                raise TipoError("La condición debe ser una verdad")
+
+            if cond_valor.valor:
+                return self.ejecutar(verdadero)
+            elif falso:
+                return self.ejecutar(falso)
+            return None
+        except Exception as e:
+            raise ErrorEjecucion(f"Error en evaluación de visión: {str(e)}", ubicacion)
+
+    def convertir_a_tipo(self, valor: Valor, tipo_destino: TipoNahual) -> Valor:
+        """Convierte un valor al tipo especificado."""
+        try:
+            if tipo_destino == TipoNahual.ENERGIA:
+                return Valor(TipoNahual.ENERGIA, float(valor.valor))
+            elif tipo_destino == TipoNahual.ESPIRITU:
+                return Valor(TipoNahual.ESPIRITU, int(float(valor.valor)))
+            elif tipo_destino == TipoNahual.MANTRA:
+                return Valor(TipoNahual.MANTRA, str(valor.valor))
+            elif tipo_destino == TipoNahual.VERDAD:
+                return Valor(TipoNahual.VERDAD, bool(valor.valor))
+            raise TipoError(f"No se puede convertir a tipo {tipo_destino}")
+        except Exception as e:
+            raise TipoError(f"Error en conversión: {str(e)}")
+
+    def _aplicar_operacion(self, op: str, izq: Valor, der: Valor) -> Optional[Valor]:
+        """Aplica una operación binaria a dos valores."""
+        operaciones = {
+            'unir': lambda x, y: x.valor + y.valor,
+            'separar': lambda x, y: x.valor - y.valor,
+            'multiplicar': lambda x, y: x.valor * y.valor,
+            'dividir': lambda x, y: x.valor / y.valor,
+            'residuo': lambda x, y: x.valor % y.valor,
+            'igual': lambda x, y: x.valor == y.valor,
+            'mayor': lambda x, y: x.valor > y.valor,
+            'menor': lambda x, y: x.valor < y.valor,
+        }
+
+        if op not in operaciones:
+            raise ValueError(f"Operador no soportado: {op}")
+
+        # Verificar compatibilidad de tipos
+        if not izq.es_compatible_con(der):
+            raise ErrorTipos(
+                "Tipos incompatibles en operación",
+                tipo_esperado=izq.tipo.value,
+                tipo_recibido=der.tipo.value
+            )
+
+        try:
+            resultado = operaciones[op](izq, der)
+            # Determinar el tipo de retorno
+            if op in {'igual', 'mayor', 'menor'}:
+                return Valor(TipoNahual.VERDAD, resultado)
+            return Valor(izq.tipo, resultado)
+        except ZeroDivisionError:
+            raise ErrorEjecucion("División por cero")
+        except Exception as e:
+            raise ErrorEjecucion(f"Error en operación {op}: {str(e)}")
+
+    def ejecutar_con_entorno(self, nodo: Any, entorno: Environment) -> Optional[Valor]:
+        """Ejecuta un nodo en un entorno específico."""
+        entorno_anterior = self.entorno_actual
+        self.entorno_actual = entorno
+        try:
+            return self.ejecutar(nodo)
+        finally:
+            self.entorno_actual = entorno_anterior
+
+    @decorar_manejo_errores
+    def run(self, source: str) -> None:
+        try:
+            from .parser import NahualParser
+            parser = NahualParser(self.debug)
+            nodos = parser.parse(source)
+            if nodos:
+                self.ejecutar_programa(nodos)
+        except Exception as e:
+            raise ErrorEjecucion(
+                f"Error al ejecutar el programa: {str(e)}",
+                sugerencia="Verifica que el código fuente sea válido"
+            )
+
+    def _rastrear_ubicacion(self, nodo: Any):
+        """Contexto para rastrear la ubicación actual en el código."""
+        from contextlib import contextmanager
+
+        @contextmanager
+        def context():
+            ubicacion_anterior = self.manejador_errores.ubicacion_actual
+            if len(nodo) > 2 and isinstance(nodo[2], dict) and 'linea' in nodo[2]:
+                self.manejador_errores.ubicacion_actual = Ubicacion(
+                    nodo[2]['linea'],
+                    nodo[2]['columna']
+                )
+            try:
+                yield
+            finally:
+                self.manejador_errores.ubicacion_actual = ubicacion_anterior
+
+        return context()
+
+    def ejecutar_literal(self, valor, ubicacion=None):
+        """
+        Executes a literal node and returns its corresponding value.
+        """
+        if isinstance(valor, tuple):
+            if valor[0] == 'llamada_funcion':
+                # Pass the location to handle debugging correctly
+                return self.ejecutar_llamada_funcion(*valor[1:], ubicacion=ubicacion)
+            raise ValueError(f"Tipo de literal inesperado con contenido: {valor}")
+        elif isinstance(valor, int):
+            return Valor(TipoNahual.ESPIRITU, valor)
+        elif isinstance(valor, float):
+            return Valor(TipoNahual.ENERGIA, valor)
+        elif isinstance(valor, str):
+            return Valor(TipoNahual.MANTRA, valor)
+        elif isinstance(valor, bool):
+            return Valor(TipoNahual.VERDAD, valor)
+        else:
+            raise ValueError(f"Tipo de literal desconocido: {type(valor)}")
+
+    def ejecutar_expresion_stmt(self, expresion, ubicacion):
+        """
+        Ejecuta un nodo de tipo expresion_stmt.
+        """
+        # Ejecuta la expresión contenida en el nodo
+        self.ejecutar(expresion)
+
+    def ejecutar_bloque(self, declaraciones: list, ubicacion: Optional[dict] = None) -> None:
+        """
+        Ejecuta un bloque de código.
+
+        Args:
+            declaraciones: Lista de declaraciones a ejecutar
+            ubicacion: Ubicación del bloque en el código
+        """
+        for declaracion in declaraciones:
+            self.ejecutar(declaracion)
+
+    def ejecutar_llamada_sistema(self, tipo: str, argumentos: List[Any], ubicacion: Optional[dict] = None) -> Optional[
+        Valor]:
+        """Ejecuta una llamada al sistema como 'invocar' o 'percibir'."""
+        try:
+            valores_evaluados = []
+            for arg in argumentos:
+                valor = self.ejecutar(arg)
+                if valor is None:
+                    return None
+                valores_evaluados.append(valor.valor)
+
+            if tipo == 'invocar':
+                print(*valores_evaluados)
+                return Valor(TipoNahual.VERDAD, True)
+            elif tipo == 'percibir':
+                mensaje = str(valores_evaluados[0]) if valores_evaluados else ""
+                entrada = input(mensaje)
+                return Valor(TipoNahual.MANTRA, entrada)
+            else:
+                raise ErrorSemantico(f"Función del sistema desconocida: {tipo}")
+        except Exception as e:
+            raise ErrorEjecucion(f"Error al ejecutar función del sistema: {str(e)}", ubicacion)
+
+
+### Archivo: .\src\nahual\lexer.py
+# src/nahual/lexer.py
+import ply.lex as lex
+from .error_handler import LexError, LexPosition
+from .logger import NahualLogger
+
+
+class NahualLexer:
+    """Analizador léxico para NahualScript."""
+
+    tokens = [
+        'ID',  # Identificadores
+        'ESPIRITU_VAL',  # Valores numéricos enteros
+        'ENERGIA_VAL',  # Valores numéricos decimales
+        'MANTRA_VAL',  # Valores de texto
+        'VERDAD_VAL',  # Valores booleanos
+        'ASSIGN',  # :=
+        'LPAREN',  # (
+        'RPAREN',  # )
+        'LBRACE',  # {
+        'RBRACE',  # }
+        'LBRACKET',  # [
+        'RBRACKET',  # ]
+        'COMMA',  # ,
+        'SEMICOLON',  # ;
+    ]
+
+    reserved = {
+        # Estructuras de control
+        'ritual': 'RITUAL',  # while
+        'vision': 'VISION',  # if
+        'sino': 'SINO',  # else
+
+        # Definición de funciones
+        'sabiduria': 'SABIDURIA',  # function
+        'retornar': 'RETORNAR',  # return
+
+        # Tipos de datos
+        'espiritu': 'ESPIRITU',  # int
+        'energia': 'ENERGIA',  # float
+        'mantra': 'MANTRA',  # string
+        'verdad': 'VERDAD',  # bool
+        'ofrenda': 'OFRENDA',  # list
+
+        # Operadores
+        'unir': 'UNIR',  # +
+        'separar': 'SEPARAR',  # -
+        'multiplicar': 'MULTIPLICAR',  # *
+        'dividir': 'DIVIDIR',  # /
+        'residuo': 'RESIDUO',  # %
+        'y': 'Y',  # and
+        'o': 'O',  # or
+        'no': 'NO',  # not
+        'igual': 'IGUAL',  # ==
+        'mayor': 'MAYOR',  # >
+        'menor': 'MENOR',  # <
+        'mayor_igual': 'MAYOR_IGUAL',
+        'menor_igual': 'MENOR_IGUAL',
+
+        # Funciones del sistema
+        'invocar': 'INVOCAR',  # print
+        'percibir': 'PERCIBIR',  # input
+        'convertir': 'CONVERTIR',
+        'longitud': 'LONGITUD',
+
+        # Valores de verdad
+        'cierto': 'CIERTO',  # true
+        'falso': 'FALSO',  # false
+    }
+
+    tokens = tokens + list(reserved.values())
+
+    # Expresiones regulares simples
+    t_ASSIGN = r':='
+    t_LPAREN = r'\('
+    t_RPAREN = r'\)'
+    t_LBRACE = r'\{'
+    t_RBRACE = r'\}'
+    t_LBRACKET = r'\['
+    t_RBRACKET = r'\]'
+    t_COMMA = r','
+    t_SEMICOLON = r';'
+
+    # Expresiones regulares con acciones
+    def t_ENERGIA_VAL(self, t):
+        r'\d+\.\d+'
+        t.value = float(t.value)
+        return t
+
+    def t_ESPIRITU_VAL(self, t):
+        r'\d+'
+        t.value = int(t.value)
+        return t
+
+    def t_MANTRA_VAL(self, t):
+        r'\"[^\"]*\"'
+        t.value = t.value[1:-1]  # Eliminar comillas
+        return t
+
+    def t_VERDAD_VAL(self, t):
+        r'cierto|falso'
+        t.value = (t.value == 'cierto')
+        return t
+
+    @staticmethod
+    def t_ID(t):
+        r'[a-záéíóúñA-ZÁÉÍÓÚÑ_][a-záéíóúñA-ZÁÉÍÓÚÑ0-9_]*'
+        t.type = NahualLexer.reserved.get(t.value, 'ID')
+        return t
+
+    def t_newline(self, t):
+        r'\n+'
+        t.lexer.lineno += len(t.value)
+
+    def t_COMMENT(self, t):
+        r'//.*'
+        pass
+
+    def t_MULTILINE_COMMENT(self, t):
+        r'/\*([^*]|\*[^/])*\*/'
+        t.lexer.lineno += t.value.count('\n')
+        pass
+
+    t_ignore = ' \t'
+
+    def t_error(self, t):
+        pos = LexPosition(t.lineno, self.find_column(t))
+        error = LexError(f"Carácter místico inválido '{t.value[0]}'", pos)
+        self.error_collector.append(error)
+        if self.debug:
+            self.logger.error(str(error))
+        t.lexer.skip(1)
+
+    def find_column(self, token):
+        """Encuentra la columna del token."""
+        last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
+        return token.lexpos - last_cr
+
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.logger = NahualLogger(debug)
+        self.error_collector = []
+        self.lexer = lex.lex(module=self)
+
+    def input(self, data):
+        self.lexer.input(data)
+
+    def token(self):
+        return self.lexer.token()
+
+    def tokenize(self, data):
+        self.input(data)
+        tokens = []
+        while True:
+            tok = self.token()
+            if not tok:
+                break
+            tokens.append(tok)
+        return tokens
+
+### Archivo: .\src\nahual\logger.py
+# src/nahual/logger.py
+
+import logging
+from typing import Optional
+
+
+class NahualLogger:
+    """Sistema de logging para NahualScript."""
+
+    def __init__(self, debug: bool = False):
+        """Inicializa el logger con nivel opcional de debug."""
+        self.logger = logging.getLogger('NahualScript')
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(emoji)s %(levelname)s: %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
+        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+
+        # Emojis para diferentes niveles de log
+        self.emojis = {
+            'DEBUG': '🔍',
+            'INFO': '✨',
+            'WARNING': '⚠️',
+            'ERROR': '❌',
+            'CRITICAL': '💥'
+        }
+
+    def _log(self, level: int, msg: str, emoji: Optional[str] = None) -> None:
+        """Método interno para manejar el logging con emojis."""
+        extra = {'emoji': emoji or self.emojis.get(logging.getLevelName(level), '✨')}
+        self.logger.log(level, msg, extra=extra)
+
+    def debug(self, msg: str) -> None:
+        """Registra un mensaje de debug."""
+        self._log(logging.DEBUG, msg)
+
+    def info(self, msg: str) -> None:
+        """Registra un mensaje informativo."""
+        self._log(logging.INFO, msg)
+
+    def warning(self, msg: str) -> None:
+        """Registra una advertencia."""
+        self._log(logging.WARNING, msg)
+
+    def error(self, msg: str) -> None:
+        """Registra un error."""
+        self._log(logging.ERROR, msg)
+
+    def critical(self, msg: str) -> None:
+        """Registra un error crítico."""
+        self._log(logging.CRITICAL, msg)
+
+    def lexer_debug(self, token: str, value: str) -> None:
+        """Registra información de debug del lexer."""
+        self.debug(f"Token encontrado: {token} = {value}")
+
+    def parser_debug(self, rule: str, values: list) -> None:
+        """Registra información de debug del parser."""
+        self.debug(f"Regla aplicada: {rule} con valores {values}")
+
+    def interpreter_debug(self, operation: str, result: any) -> None:
+        """Registra información de debug del intérprete."""
+        self.debug(f"Operación: {operation} = {result}")
+
+### Archivo: .\src\nahual\parser.py
+# src/nahual/parser.py
+
+import ply.yacc as yacc
+from typing import Any, List, Dict, Optional
+from .lexer import NahualLexer
+from .error_handler import ErrorSintaxis, Ubicacion
+
+class NahualParser:
+    """Parser para el lenguaje místico NahualScript."""
+
+    def __init__(self, debug: bool = False):
+        self.debug = debug
+        self.lexer = NahualLexer(debug)
+        self.tokens = self.lexer.tokens
+        self.ubicacion_actual = None
+        self.parser = yacc.yacc(module=self)
+
+    # Precedencia de operadores místicos
+    precedence = (
+        ('left', 'O'),
+        ('left', 'Y'),
+        ('left', 'IGUAL'),
+        ('left', 'MENOR', 'MAYOR'),
+        ('left', 'UNIR', 'SEPARAR'),
+        ('left', 'MULTIPLICAR', 'DIVIDIR', 'RESIDUO'),
+        ('right', 'NO'),
+        ('right', 'UMENOS')
+    )
+
+    def p_programa(self, p):
+        '''programa : declaraciones'''
+        p[0] = ('programa', p[1], self._ubicacion(p))
+
+    def p_declaraciones(self, p):
+        '''declaraciones : declaracion
+                         | declaraciones declaracion'''
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[2]]
+
+    def p_declaracion(self, p):
+        '''declaracion : var_declaracion
+                      | funcion_declaracion
+                      | ritual_declaracion
+                      | vision_declaracion
+                      | llamada_sistema
+                      | retorno_stmt
+                      | expresion SEMICOLON'''
+        if len(p) == 2:
+            p[0] = p[1]
+        elif len(p) == 3 and p[2] == ';':
+            p[0] = ('expresion_stmt', p[1], self._ubicacion(p))
+        else:
+            p[0] = p[1]
+
+    def p_llamada_sistema(self, p):
+        '''llamada_sistema : INVOCAR argumentos_invocar SEMICOLON
+                         | PERCIBIR LPAREN expresion RPAREN SEMICOLON
+                         | CONVERTIR LPAREN expresion COMMA expresion RPAREN SEMICOLON'''
+        ubicacion = self._ubicacion(p)
+        if p[1] == 'percibir':
+            p[0] = ('llamada_sistema', 'percibir', [p[3]], ubicacion)
+        elif p[1] == 'invocar':
+            p[0] = ('llamada_sistema', 'invocar', p[2], ubicacion)
+        elif p[1] == 'convertir':
+            p[0] = ('llamada_sistema', 'convertir', [p[3], p[5]], ubicacion)
+
+    def p_argumentos_invocar(self, p):
+        '''argumentos_invocar : expresion
+                            | argumentos_invocar UNIR expresion'''
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[3]]
+
+    def p_var_declaracion(self, p):
+        '''
+        var_declaracion : tipo ID ASSIGN expresion SEMICOLON
+                       | tipo ID ASSIGN llamada_sistema SEMICOLON
+                       | tipo ID ASSIGN PERCIBIR LPAREN expresion RPAREN SEMICOLON
+        '''
+        tipo = p[1]
+        nombre = p[2]
+        ubicacion = self._ubicacion(p)
+
+        if len(p) == 6:  # tipo ID := expresion;
+            p[0] = ('var_declaracion', tipo, nombre, p[4], ubicacion)
+        elif len(p) == 8:  # tipo ID := percibir(...);
+            llamada = ('llamada_sistema', 'percibir', [p[6]], ubicacion)
+            p[0] = ('var_declaracion', tipo, nombre, llamada, ubicacion)
+        else:  # tipo ID := llamada_sistema;
+            p[0] = ('var_declaracion', tipo, nombre, p[4], ubicacion)
+
+    def p_tipo(self, p):
+        '''tipo : ESPIRITU
+               | ENERGIA
+               | MANTRA
+               | VERDAD
+               | OFRENDA'''
+        p[0] = p[1]
+
+    def p_funcion_declaracion(self, p):
+        '''funcion_declaracion : SABIDURIA ID LPAREN parametros_opt RPAREN bloque'''
+        p[0] = ('funcion_declaracion', p[2], p[4], p[6], self._ubicacion(p))
+
+    def p_ritual_declaracion(self, p):
+        '''ritual_declaracion : RITUAL LPAREN expresion RPAREN bloque'''
+        p[0] = ('ritual', p[3], p[5], self._ubicacion(p))
+
+    def p_vision_declaracion(self, p):
+        '''vision_declaracion : VISION LPAREN expresion RPAREN bloque sino_opt'''
+        p[0] = ('vision', p[3], p[5], p[6], self._ubicacion(p))
+
+    def p_sino_opt(self, p):
+        '''sino_opt : SINO bloque
+                   | empty'''
+        p[0] = p[1] if len(p) > 2 else None
+
+    def p_parametros_opt(self, p):
+        '''parametros_opt : parametros
+                        | empty'''
+        p[0] = p[1] if p[1] is not None else []
+
+    def p_parametros(self, p):
+        '''parametros : parametro
+                     | parametros COMMA parametro'''
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[3]]
+
+    def p_parametro(self, p):
+        '''parametro : tipo ID'''
+        p[0] = (p[1], p[2])
+
+    def p_bloque(self, p):
+        '''bloque : LBRACE declaraciones RBRACE'''
+        p[0] = ('bloque', p[2], self._ubicacion(p))
+
+    def p_expresion(self, p):
+        '''expresion : llamada_funcion
+                    | llamada_sistema
+                    | expresion UNIR expresion
+                    | expresion SEPARAR expresion
+                    | expresion MULTIPLICAR expresion
+                    | expresion DIVIDIR expresion
+                    | expresion RESIDUO expresion
+                    | expresion IGUAL expresion
+                    | expresion MENOR expresion
+                    | expresion MAYOR expresion
+                    | expresion Y expresion
+                    | expresion O expresion
+                    | NO expresion
+                    | SEPARAR expresion %prec UMENOS
+                    | LPAREN expresion RPAREN
+                    | lista_literal
+                    | acceso_lista
+                    | ID
+                    | ESPIRITU_VAL
+                    | ENERGIA_VAL
+                    | MANTRA_VAL
+                    | VERDAD_VAL'''
+        if len(p) == 2:
+            if isinstance(p[1], str) and p.slice[1].type == 'ID':
+                p[0] = ('variable', p[1], self._ubicacion(p))
+            elif isinstance(p[1], tuple):
+                p[0] = p[1]
+            else:
+                p[0] = ('literal', p[1], self._ubicacion(p))
+        elif len(p) == 3:
+            if p[1] == 'no':
+                p[0] = ('operacion_unaria', 'no', p[2], self._ubicacion(p))
+            else:
+                p[0] = ('operacion_unaria', 'negativo', p[2], self._ubicacion(p))
+        elif len(p) == 4:
+            if p[1] == '(':
+                p[0] = p[2]
+            else:
+                p[0] = ('operacion', p[2], p[1], p[3], self._ubicacion(p))
+    def p_llamada_funcion(self, p):
+        '''llamada_funcion : ID LPAREN argumentos_opt RPAREN'''
+        p[0] = ('llamada_funcion', p[1], p[3], self._ubicacion(p))
+
+    def p_argumentos_opt(self, p):
+        '''argumentos_opt : argumentos
+                        | empty'''
+        p[0] = p[1] if p[1] is not None else []
+
+    def p_argumentos(self, p):
+        '''argumentos : expresion
+                     | argumentos COMMA expresion'''
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[3]]
+
+    def p_lista_literal(self, p):
+        '''lista_literal : LBRACKET elementos_opt RBRACKET'''
+        p[0] = ('lista', p[2], self._ubicacion(p))
+
+    def p_elementos_opt(self, p):
+        '''elementos_opt : elementos
+                       | empty'''
+        p[0] = p[1] if p[1] is not None else []
+
+    def p_elementos(self, p):
+        '''elementos : expresion
+                    | elementos COMMA expresion'''
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[3]]
+
+    def p_acceso_lista(self, p):
+        '''acceso_lista : ID LBRACKET expresion RBRACKET'''
+        p[0] = ('acceso_lista', ('variable', p[1], self._ubicacion(p)), p[3], self._ubicacion(p))
+
+    def p_empty(self, p):
+        '''empty :'''
+        pass
+
+    def p_retorno_stmt(self, p):
+        """retorno_stmt : RETORNAR expresion SEMICOLON"""
+        p[0] = ('retorno', p[2], self._ubicacion(p))
+
+    def p_error(self, p):
+        if p:
+            ubicacion = Ubicacion(p.lineno, self.lexer.find_column(p))
+            mensaje = f"Error en el ritual místico cerca de '{p.value}'"
+            raise ErrorSintaxis(mensaje, ubicacion=ubicacion)
+        else:
+            raise ErrorSintaxis("El ritual está incompleto")
+
+    def _ubicacion(self, p, indice: int = 1) -> Dict[str, Any]:
+        """Obtiene la ubicación mística del token en el código fuente."""
+        return {
+            'linea': p.lineno(indice),
+            'columna': getattr(p.slice[indice], 'lexpos', 0)
+        }
+
+    def parse(self, text: str) -> Optional[Any]:
+        """Interpreta el ritual místico y retorna el árbol de sabidurías."""
+        resultado = self.parser.parse(text, lexer=self.lexer, debug=self.debug)
+        print("🌟 Árbol generado:", resultado)  # Agrega esta línea
+        return resultado
+
+
+### Archivo: .\src\nahual\parsetab.py
+
+# parsetab.py
+# This file is automatically generated. Do not edit.
+# pylint: disable=W,C,R
+_tabversion = '3.10'
+
+_lr_method = 'LALR'
+
+_lr_signature = 'leftOleftYleftIGUALleftMENORMAYORleftUNIRSEPARARleftMULTIPLICARDIVIDIRRESIDUOrightNOrightUMENOSASSIGN CIERTO COMMA CONVERTIR DIVIDIR ENERGIA ENERGIA_VAL ESPIRITU ESPIRITU_VAL FALSO ID IGUAL INVOCAR LBRACE LBRACKET LONGITUD LPAREN MANTRA MANTRA_VAL MAYOR MAYOR_IGUAL MENOR MENOR_IGUAL MULTIPLICAR NO O OFRENDA PERCIBIR RBRACE RBRACKET RESIDUO RETORNAR RITUAL RPAREN SABIDURIA SEMICOLON SEPARAR SINO UNIR VERDAD VERDAD_VAL VISION Yprograma : declaracionesdeclaraciones : declaracion\n                         | declaraciones declaraciondeclaracion : var_declaracion\n                      | funcion_declaracion\n                      | ritual_declaracion\n                      | vision_declaracion\n                      | llamada_sistema\n                      | retorno_stmt\n                      | expresion SEMICOLONllamada_sistema : INVOCAR argumentos_invocar SEMICOLON\n                         | PERCIBIR LPAREN expresion RPAREN SEMICOLON\n                         | CONVERTIR LPAREN expresion COMMA expresion RPAREN SEMICOLONargumentos_invocar : expresion\n                            | argumentos_invocar UNIR expresion\n        var_declaracion : tipo ID ASSIGN expresion SEMICOLON\n                       | tipo ID ASSIGN llamada_sistema SEMICOLON\n                       | tipo ID ASSIGN PERCIBIR LPAREN expresion RPAREN SEMICOLON\n        tipo : ESPIRITU\n               | ENERGIA\n               | MANTRA\n               | VERDAD\n               | OFRENDAfuncion_declaracion : SABIDURIA ID LPAREN parametros_opt RPAREN bloqueritual_declaracion : RITUAL LPAREN expresion RPAREN bloquevision_declaracion : VISION LPAREN expresion RPAREN bloque sino_optsino_opt : SINO bloque\n                   | emptyparametros_opt : parametros\n                        | emptyparametros : parametro\n                     | parametros COMMA parametroparametro : tipo IDbloque : LBRACE declaraciones RBRACEexpresion : llamada_funcion\n                    | llamada_sistema\n                    | expresion UNIR expresion\n                    | expresion SEPARAR expresion\n                    | expresion MULTIPLICAR expresion\n                    | expresion DIVIDIR expresion\n                    | expresion RESIDUO expresion\n                    | expresion IGUAL expresion\n                    | expresion MENOR expresion\n                    | expresion MAYOR expresion\n                    | expresion Y expresion\n                    | expresion O expresion\n                    | NO expresion\n                    | SEPARAR expresion %prec UMENOS\n                    | LPAREN expresion RPAREN\n                    | lista_literal\n                    | acceso_lista\n                    | ID\n                    | ESPIRITU_VAL\n                    | ENERGIA_VAL\n                    | MANTRA_VAL\n                    | VERDAD_VALllamada_funcion : ID LPAREN argumentos_opt RPARENargumentos_opt : argumentos\n                        | emptyargumentos : expresion\n                     | argumentos COMMA expresionlista_literal : LBRACKET elementos_opt RBRACKETelementos_opt : elementos\n                       | emptyelementos : expresion\n                    | elementos COMMA expresionacceso_lista : ID LBRACKET expresion RBRACKETempty :retorno_stmt : RETORNAR expresion SEMICOLON'
+    
+_lr_action_items = {'SABIDURIA':([0,2,3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,120,121,124,126,127,129,132,133,134,135,],[15,15,-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,15,-68,-24,15,-26,-28,-34,-27,-13,-18,]),'RITUAL':([0,2,3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,120,121,124,126,127,129,132,133,134,135,],[16,16,-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,16,-68,-24,16,-26,-28,-34,-27,-13,-18,]),'VISION':([0,2,3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,120,121,124,126,127,129,132,133,134,135,],[17,17,-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,17,-68,-24,17,-26,-28,-34,-27,-13,-18,]),'INVOCAR':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[18,18,-2,-4,-5,-6,-7,-8,-9,18,18,18,18,18,18,-3,-10,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,-11,18,-69,18,18,18,-16,-17,18,-12,-25,18,-68,-24,18,-26,-28,-34,-27,-13,-18,]),'PERCIBIR':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[13,13,-2,-4,-5,-6,-7,-8,-9,13,13,13,13,13,13,-3,-10,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,96,-11,13,-69,13,13,13,-16,-17,13,-12,-25,13,-68,-24,13,-26,-28,-34,-27,-13,-18,]),'CONVERTIR':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[19,19,-2,-4,-5,-6,-7,-8,-9,19,19,19,19,19,19,-3,-10,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,-11,19,-69,19,19,19,-16,-17,19,-12,-25,19,-68,-24,19,-26,-28,-34,-27,-13,-18,]),'RETORNAR':([0,2,3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,120,121,124,126,127,129,132,133,134,135,],[20,20,-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,20,-68,-24,20,-26,-28,-34,-27,-13,-18,]),'NO':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[23,23,-2,-4,-5,-6,-7,-8,-9,23,23,23,23,23,23,-3,-10,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,-11,23,-69,23,23,23,-16,-17,23,-12,-25,23,-68,-24,23,-26,-28,-34,-27,-13,-18,]),'SEPARAR':([0,2,3,4,5,6,7,8,9,10,12,14,18,20,21,22,23,24,25,26,27,28,29,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,52,53,55,56,58,59,60,61,62,66,67,68,69,70,71,72,73,74,75,76,77,81,82,83,84,86,87,88,89,90,91,92,93,94,95,97,98,99,108,109,110,111,112,113,114,115,119,120,121,122,123,124,126,127,129,132,133,134,135,],[22,22,-2,-4,-5,-6,-7,-8,-9,39,-52,22,22,22,-35,22,22,-50,-51,-53,-54,-55,-56,22,-3,-10,22,22,22,22,22,22,22,22,22,22,22,22,22,39,-36,22,22,39,22,39,-48,-47,39,-37,-38,-39,-40,-41,39,39,39,39,39,22,39,39,39,-49,39,39,-11,22,39,-69,-62,22,39,-36,-57,22,-67,39,22,39,-16,-17,22,39,-12,-25,22,-68,39,39,-24,22,-26,-28,-34,-27,-13,-12,]),'LPAREN':([0,2,3,4,5,6,7,8,9,12,13,14,16,17,18,19,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,54,55,56,59,77,88,89,91,93,96,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[14,14,-2,-4,-5,-6,-7,-8,-9,49,51,14,55,56,14,59,14,14,14,14,-3,-10,14,14,14,14,14,14,14,14,14,14,14,14,14,85,14,14,14,14,-11,14,-69,14,113,14,14,-16,-17,14,-12,-25,14,-68,-24,14,-26,-28,-34,-27,-13,-18,]),'ID':([0,2,3,4,5,6,7,8,9,11,14,15,18,20,22,23,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,105,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[12,12,-2,-4,-5,-6,-7,-8,-9,48,12,54,12,12,12,12,-19,-20,-21,-22,-23,12,-3,-10,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,-11,12,-69,12,12,118,12,-16,-17,12,-12,-25,12,-68,-24,12,-26,-28,-34,-27,-13,-18,]),'ESPIRITU_VAL':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[26,26,-2,-4,-5,-6,-7,-8,-9,26,26,26,26,26,26,-3,-10,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,-11,26,-69,26,26,26,-16,-17,26,-12,-25,26,-68,-24,26,-26,-28,-34,-27,-13,-18,]),'ENERGIA_VAL':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[27,27,-2,-4,-5,-6,-7,-8,-9,27,27,27,27,27,27,-3,-10,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,-11,27,-69,27,27,27,-16,-17,27,-12,-25,27,-68,-24,27,-26,-28,-34,-27,-13,-18,]),'MANTRA_VAL':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[28,28,-2,-4,-5,-6,-7,-8,-9,28,28,28,28,28,28,-3,-10,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,-11,28,-69,28,28,28,-16,-17,28,-12,-25,28,-68,-24,28,-26,-28,-34,-27,-13,-18,]),'VERDAD_VAL':([0,2,3,4,5,6,7,8,9,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[29,29,-2,-4,-5,-6,-7,-8,-9,29,29,29,29,29,29,-3,-10,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,-11,29,-69,29,29,29,-16,-17,29,-12,-25,29,-68,-24,29,-26,-28,-34,-27,-13,-18,]),'ESPIRITU':([0,2,3,4,5,6,7,8,9,36,37,85,88,91,111,112,115,117,119,120,121,124,126,127,129,132,133,134,135,],[30,30,-2,-4,-5,-6,-7,-8,-9,-3,-10,30,-11,-69,-16,-17,-12,30,-25,30,-68,-24,30,-26,-28,-34,-27,-13,-18,]),'ENERGIA':([0,2,3,4,5,6,7,8,9,36,37,85,88,91,111,112,115,117,119,120,121,124,126,127,129,132,133,134,135,],[31,31,-2,-4,-5,-6,-7,-8,-9,-3,-10,31,-11,-69,-16,-17,-12,31,-25,31,-68,-24,31,-26,-28,-34,-27,-13,-18,]),'MANTRA':([0,2,3,4,5,6,7,8,9,36,37,85,88,91,111,112,115,117,119,120,121,124,126,127,129,132,133,134,135,],[32,32,-2,-4,-5,-6,-7,-8,-9,-3,-10,32,-11,-69,-16,-17,-12,32,-25,32,-68,-24,32,-26,-28,-34,-27,-13,-18,]),'VERDAD':([0,2,3,4,5,6,7,8,9,36,37,85,88,91,111,112,115,117,119,120,121,124,126,127,129,132,133,134,135,],[33,33,-2,-4,-5,-6,-7,-8,-9,-3,-10,33,-11,-69,-16,-17,-12,33,-25,33,-68,-24,33,-26,-28,-34,-27,-13,-18,]),'OFRENDA':([0,2,3,4,5,6,7,8,9,36,37,85,88,91,111,112,115,117,119,120,121,124,126,127,129,132,133,134,135,],[34,34,-2,-4,-5,-6,-7,-8,-9,-3,-10,34,-11,-69,-16,-17,-12,34,-25,34,-68,-24,34,-26,-28,-34,-27,-13,-18,]),'LBRACKET':([0,2,3,4,5,6,7,8,9,12,14,18,20,22,23,35,36,37,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,88,89,91,93,98,109,111,112,113,115,119,120,121,124,126,127,129,132,133,134,135,],[35,35,-2,-4,-5,-6,-7,-8,-9,50,35,35,35,35,35,35,-3,-10,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,-11,35,-69,35,35,35,-16,-17,35,-12,-25,35,-68,-24,35,-26,-28,-34,-27,-13,-18,]),'$end':([1,2,3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,121,124,127,129,132,133,134,135,],[0,-1,-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,-68,-24,-26,-28,-34,-27,-13,-18,]),'RBRACE':([3,4,5,6,7,8,9,36,37,88,91,111,112,115,119,121,124,126,127,129,132,133,134,135,],[-2,-4,-5,-6,-7,-8,-9,-3,-10,-11,-69,-16,-17,-12,-25,-68,-24,132,-26,-28,-34,-27,-13,-18,]),'SEMICOLON':([8,10,12,21,24,25,26,27,28,29,53,57,58,60,61,62,67,68,69,70,71,72,73,74,75,76,84,88,92,94,95,97,99,100,108,115,130,131,134,135,],[-36,37,-52,-35,-50,-51,-53,-54,-55,-56,-36,88,-14,91,-48,-47,-37,-38,-39,-40,-41,-42,-43,-44,-45,-46,-49,-11,-62,111,112,-57,-67,115,-15,-12,134,135,-13,-12,]),'UNIR':([8,10,12,21,24,25,26,27,28,29,52,53,57,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,38,-52,-35,-50,-51,-53,-54,-55,-56,38,-36,89,38,38,-48,-47,38,-37,-38,-39,-40,-41,38,38,38,38,38,38,38,38,-49,38,38,-11,38,-62,38,-36,-57,-67,-15,38,38,-12,38,38,-13,-12,]),'MULTIPLICAR':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,40,-52,-35,-50,-51,-53,-54,-55,-56,40,-36,40,40,-48,-47,40,40,40,-39,-40,-41,40,40,40,40,40,40,40,40,-49,40,40,-11,40,-62,40,-36,-57,-67,40,40,40,-12,40,40,-13,-12,]),'DIVIDIR':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,41,-52,-35,-50,-51,-53,-54,-55,-56,41,-36,41,41,-48,-47,41,41,41,-39,-40,-41,41,41,41,41,41,41,41,41,-49,41,41,-11,41,-62,41,-36,-57,-67,41,41,41,-12,41,41,-13,-12,]),'RESIDUO':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,42,-52,-35,-50,-51,-53,-54,-55,-56,42,-36,42,42,-48,-47,42,42,42,-39,-40,-41,42,42,42,42,42,42,42,42,-49,42,42,-11,42,-62,42,-36,-57,-67,42,42,42,-12,42,42,-13,-12,]),'IGUAL':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,43,-52,-35,-50,-51,-53,-54,-55,-56,43,-36,43,43,-48,-47,43,-37,-38,-39,-40,-41,-42,-43,-44,43,43,43,43,43,-49,43,43,-11,43,-62,43,-36,-57,-67,43,43,43,-12,43,43,-13,-12,]),'MENOR':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,44,-52,-35,-50,-51,-53,-54,-55,-56,44,-36,44,44,-48,-47,44,-37,-38,-39,-40,-41,44,-43,-44,44,44,44,44,44,-49,44,44,-11,44,-62,44,-36,-57,-67,44,44,44,-12,44,44,-13,-12,]),'MAYOR':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,45,-52,-35,-50,-51,-53,-54,-55,-56,45,-36,45,45,-48,-47,45,-37,-38,-39,-40,-41,45,-43,-44,45,45,45,45,45,-49,45,45,-11,45,-62,45,-36,-57,-67,45,45,45,-12,45,45,-13,-12,]),'Y':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,46,-52,-35,-50,-51,-53,-54,-55,-56,46,-36,46,46,-48,-47,46,-37,-38,-39,-40,-41,-42,-43,-44,-45,46,46,46,46,-49,46,46,-11,46,-62,46,-36,-57,-67,46,46,46,-12,46,46,-13,-12,]),'O':([8,10,12,21,24,25,26,27,28,29,52,53,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,84,86,87,88,90,92,94,95,97,99,108,110,114,115,122,123,134,135,],[-36,47,-52,-35,-50,-51,-53,-54,-55,-56,47,-36,47,47,-48,-47,47,-37,-38,-39,-40,-41,-42,-43,-44,-45,-46,47,47,47,-49,47,47,-11,47,-62,47,-36,-57,-67,47,47,47,-12,47,47,-13,-12,]),'RPAREN':([12,21,24,25,26,27,28,29,49,52,53,61,62,67,68,69,70,71,72,73,74,75,76,78,79,80,81,83,84,85,86,87,88,92,97,99,101,102,103,104,114,115,118,122,123,125,134,],[-52,-35,-50,-51,-53,-54,-55,-56,-68,84,-36,-48,-47,-37,-38,-39,-40,-41,-42,-43,-44,-45,-46,97,-58,-59,-60,100,-49,-68,106,107,-11,-62,-57,-67,116,-29,-30,-31,-61,-12,-33,130,131,-32,-13,]),'COMMA':([12,21,24,25,26,27,28,29,53,61,62,64,66,67,68,69,70,71,72,73,74,75,76,79,81,84,88,90,92,97,99,102,104,110,114,115,118,125,134,],[-52,-35,-50,-51,-53,-54,-55,-56,-36,-48,-47,93,-65,-37,-38,-39,-40,-41,-42,-43,-44,-45,-46,98,-60,-49,-11,109,-62,-57,-67,117,-31,-66,-61,-12,-33,-32,-13,]),'RBRACKET':([12,21,24,25,26,27,28,29,35,53,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,82,84,88,92,97,99,110,115,134,],[-52,-35,-50,-51,-53,-54,-55,-56,-68,-36,-48,-47,92,-63,-64,-65,-37,-38,-39,-40,-41,-42,-43,-44,-45,-46,99,-49,-11,-62,-57,-67,-66,-12,-13,]),'ASSIGN':([48,],[77,]),'LBRACE':([106,107,116,128,],[120,120,120,120,]),'SINO':([121,132,],[128,-34,]),}
+
+_lr_action = {}
+for _k, _v in _lr_action_items.items():
+   for _x,_y in zip(_v[0],_v[1]):
+      if not _x in _lr_action:  _lr_action[_x] = {}
+      _lr_action[_x][_k] = _y
+del _lr_action_items
+
+_lr_goto_items = {'programa':([0,],[1,]),'declaraciones':([0,120,],[2,126,]),'declaracion':([0,2,120,126,],[3,36,3,36,]),'var_declaracion':([0,2,120,126,],[4,4,4,4,]),'funcion_declaracion':([0,2,120,126,],[5,5,5,5,]),'ritual_declaracion':([0,2,120,126,],[6,6,6,6,]),'vision_declaracion':([0,2,120,126,],[7,7,7,7,]),'llamada_sistema':([0,2,14,18,20,22,23,35,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,89,93,98,109,113,120,126,],[8,8,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,95,53,53,53,53,53,8,8,]),'retorno_stmt':([0,2,120,126,],[9,9,9,9,]),'expresion':([0,2,14,18,20,22,23,35,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,89,93,98,109,113,120,126,],[10,10,52,58,60,61,62,66,67,68,69,70,71,72,73,74,75,76,81,82,83,86,87,90,94,108,110,114,122,123,10,10,]),'tipo':([0,2,85,117,120,126,],[11,11,105,105,11,11,]),'llamada_funcion':([0,2,14,18,20,22,23,35,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,89,93,98,109,113,120,126,],[21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,]),'lista_literal':([0,2,14,18,20,22,23,35,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,89,93,98,109,113,120,126,],[24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,]),'acceso_lista':([0,2,14,18,20,22,23,35,38,39,40,41,42,43,44,45,46,47,49,50,51,55,56,59,77,89,93,98,109,113,120,126,],[25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,]),'argumentos_invocar':([18,],[57,]),'elementos_opt':([35,],[63,]),'elementos':([35,],[64,]),'empty':([35,49,85,121,],[65,80,103,129,]),'argumentos_opt':([49,],[78,]),'argumentos':([49,],[79,]),'parametros_opt':([85,],[101,]),'parametros':([85,],[102,]),'parametro':([85,117,],[104,125,]),'bloque':([106,107,116,128,],[119,121,124,133,]),'sino_opt':([121,],[127,]),}
+
+_lr_goto = {}
+for _k, _v in _lr_goto_items.items():
+   for _x, _y in zip(_v[0], _v[1]):
+       if not _x in _lr_goto: _lr_goto[_x] = {}
+       _lr_goto[_x][_k] = _y
+del _lr_goto_items
+_lr_productions = [
+  ("S' -> programa","S'",1,None,None,None),
+  ('programa -> declaraciones','programa',1,'p_programa','parser.py',31),
+  ('declaraciones -> declaracion','declaraciones',1,'p_declaraciones','parser.py',35),
+  ('declaraciones -> declaraciones declaracion','declaraciones',2,'p_declaraciones','parser.py',36),
+  ('declaracion -> var_declaracion','declaracion',1,'p_declaracion','parser.py',43),
+  ('declaracion -> funcion_declaracion','declaracion',1,'p_declaracion','parser.py',44),
+  ('declaracion -> ritual_declaracion','declaracion',1,'p_declaracion','parser.py',45),
+  ('declaracion -> vision_declaracion','declaracion',1,'p_declaracion','parser.py',46),
+  ('declaracion -> llamada_sistema','declaracion',1,'p_declaracion','parser.py',47),
+  ('declaracion -> retorno_stmt','declaracion',1,'p_declaracion','parser.py',48),
+  ('declaracion -> expresion SEMICOLON','declaracion',2,'p_declaracion','parser.py',49),
+  ('llamada_sistema -> INVOCAR argumentos_invocar SEMICOLON','llamada_sistema',3,'p_llamada_sistema','parser.py',58),
+  ('llamada_sistema -> PERCIBIR LPAREN expresion RPAREN SEMICOLON','llamada_sistema',5,'p_llamada_sistema','parser.py',59),
+  ('llamada_sistema -> CONVERTIR LPAREN expresion COMMA expresion RPAREN SEMICOLON','llamada_sistema',7,'p_llamada_sistema','parser.py',60),
+  ('argumentos_invocar -> expresion','argumentos_invocar',1,'p_argumentos_invocar','parser.py',70),
+  ('argumentos_invocar -> argumentos_invocar UNIR expresion','argumentos_invocar',3,'p_argumentos_invocar','parser.py',71),
+  ('var_declaracion -> tipo ID ASSIGN expresion SEMICOLON','var_declaracion',5,'p_var_declaracion','parser.py',79),
+  ('var_declaracion -> tipo ID ASSIGN llamada_sistema SEMICOLON','var_declaracion',5,'p_var_declaracion','parser.py',80),
+  ('var_declaracion -> tipo ID ASSIGN PERCIBIR LPAREN expresion RPAREN SEMICOLON','var_declaracion',8,'p_var_declaracion','parser.py',81),
+  ('tipo -> ESPIRITU','tipo',1,'p_tipo','parser.py',96),
+  ('tipo -> ENERGIA','tipo',1,'p_tipo','parser.py',97),
+  ('tipo -> MANTRA','tipo',1,'p_tipo','parser.py',98),
+  ('tipo -> VERDAD','tipo',1,'p_tipo','parser.py',99),
+  ('tipo -> OFRENDA','tipo',1,'p_tipo','parser.py',100),
+  ('funcion_declaracion -> SABIDURIA ID LPAREN parametros_opt RPAREN bloque','funcion_declaracion',6,'p_funcion_declaracion','parser.py',104),
+  ('ritual_declaracion -> RITUAL LPAREN expresion RPAREN bloque','ritual_declaracion',5,'p_ritual_declaracion','parser.py',108),
+  ('vision_declaracion -> VISION LPAREN expresion RPAREN bloque sino_opt','vision_declaracion',6,'p_vision_declaracion','parser.py',112),
+  ('sino_opt -> SINO bloque','sino_opt',2,'p_sino_opt','parser.py',116),
+  ('sino_opt -> empty','sino_opt',1,'p_sino_opt','parser.py',117),
+  ('parametros_opt -> parametros','parametros_opt',1,'p_parametros_opt','parser.py',121),
+  ('parametros_opt -> empty','parametros_opt',1,'p_parametros_opt','parser.py',122),
+  ('parametros -> parametro','parametros',1,'p_parametros','parser.py',126),
+  ('parametros -> parametros COMMA parametro','parametros',3,'p_parametros','parser.py',127),
+  ('parametro -> tipo ID','parametro',2,'p_parametro','parser.py',134),
+  ('bloque -> LBRACE declaraciones RBRACE','bloque',3,'p_bloque','parser.py',138),
+  ('expresion -> llamada_funcion','expresion',1,'p_expresion','parser.py',142),
+  ('expresion -> llamada_sistema','expresion',1,'p_expresion','parser.py',143),
+  ('expresion -> expresion UNIR expresion','expresion',3,'p_expresion','parser.py',144),
+  ('expresion -> expresion SEPARAR expresion','expresion',3,'p_expresion','parser.py',145),
+  ('expresion -> expresion MULTIPLICAR expresion','expresion',3,'p_expresion','parser.py',146),
+  ('expresion -> expresion DIVIDIR expresion','expresion',3,'p_expresion','parser.py',147),
+  ('expresion -> expresion RESIDUO expresion','expresion',3,'p_expresion','parser.py',148),
+  ('expresion -> expresion IGUAL expresion','expresion',3,'p_expresion','parser.py',149),
+  ('expresion -> expresion MENOR expresion','expresion',3,'p_expresion','parser.py',150),
+  ('expresion -> expresion MAYOR expresion','expresion',3,'p_expresion','parser.py',151),
+  ('expresion -> expresion Y expresion','expresion',3,'p_expresion','parser.py',152),
+  ('expresion -> expresion O expresion','expresion',3,'p_expresion','parser.py',153),
+  ('expresion -> NO expresion','expresion',2,'p_expresion','parser.py',154),
+  ('expresion -> SEPARAR expresion','expresion',2,'p_expresion','parser.py',155),
+  ('expresion -> LPAREN expresion RPAREN','expresion',3,'p_expresion','parser.py',156),
+  ('expresion -> lista_literal','expresion',1,'p_expresion','parser.py',157),
+  ('expresion -> acceso_lista','expresion',1,'p_expresion','parser.py',158),
+  ('expresion -> ID','expresion',1,'p_expresion','parser.py',159),
+  ('expresion -> ESPIRITU_VAL','expresion',1,'p_expresion','parser.py',160),
+  ('expresion -> ENERGIA_VAL','expresion',1,'p_expresion','parser.py',161),
+  ('expresion -> MANTRA_VAL','expresion',1,'p_expresion','parser.py',162),
+  ('expresion -> VERDAD_VAL','expresion',1,'p_expresion','parser.py',163),
+  ('llamada_funcion -> ID LPAREN argumentos_opt RPAREN','llamada_funcion',4,'p_llamada_funcion','parser.py',182),
+  ('argumentos_opt -> argumentos','argumentos_opt',1,'p_argumentos_opt','parser.py',186),
+  ('argumentos_opt -> empty','argumentos_opt',1,'p_argumentos_opt','parser.py',187),
+  ('argumentos -> expresion','argumentos',1,'p_argumentos','parser.py',191),
+  ('argumentos -> argumentos COMMA expresion','argumentos',3,'p_argumentos','parser.py',192),
+  ('lista_literal -> LBRACKET elementos_opt RBRACKET','lista_literal',3,'p_lista_literal','parser.py',199),
+  ('elementos_opt -> elementos','elementos_opt',1,'p_elementos_opt','parser.py',203),
+  ('elementos_opt -> empty','elementos_opt',1,'p_elementos_opt','parser.py',204),
+  ('elementos -> expresion','elementos',1,'p_elementos','parser.py',208),
+  ('elementos -> elementos COMMA expresion','elementos',3,'p_elementos','parser.py',209),
+  ('acceso_lista -> ID LBRACKET expresion RBRACKET','acceso_lista',4,'p_acceso_lista','parser.py',216),
+  ('empty -> <empty>','empty',0,'p_empty','parser.py',220),
+  ('retorno_stmt -> RETORNAR expresion SEMICOLON','retorno_stmt',3,'p_retorno_stmt','parser.py',224),
+]
+
+
+### Archivo: .\src\nahual\types.py
+from enum import Enum
+from dataclasses import dataclass
+from typing import Any, Dict, List, Union, Optional
+
+
+class TipoNahual(Enum):
+    ESPIRITU = 'espiritu'  # Enteros
+    ENERGIA = 'energia'  # Flotantes
+    MANTRA = 'mantra'  # Strings
+    VERDAD = 'verdad'  # Booleanos
+    LISTA = 'lista'  # Lista de valores
+    MAPA = 'mapa'  # Diccionario/Mapa
+
+
+@dataclass
+class Lista:
+    elementos: List['Valor']
+    tipo_elementos: Optional[TipoNahual] = None  # Para listas tipadas
+
+    def agregar(self, valor: 'Valor') -> None:
+        if self.tipo_elementos and valor.tipo != self.tipo_elementos:
+            raise TipoError(f"No se puede agregar {valor.tipo} a lista de {self.tipo_elementos}")
+        self.elementos.append(valor)
+
+    def obtener(self, indice: int) -> 'Valor':
+        if not (0 <= indice < len(self.elementos)):
+            raise IndexError(f"Índice {indice} fuera de rango")
+        return self.elementos[indice]
+
+    def longitud(self) -> int:
+        return len(self.elementos)
+
+
+@dataclass
+class Valor:
+    tipo: TipoNahual
+    valor: Any
+    posicion: Optional['Posicion'] = None  # Para rastreo de errores
+
+    def __str__(self):
+        if self.tipo == TipoNahual.LISTA:
+            return f"[{', '.join(str(x) for x in self.valor.elementos)}]"
+        return str(self.valor)
+
+    def es_compatible_con(self, otro: 'Valor') -> bool:
+        if self.tipo == otro.tipo:
+            return True
+        # Permitir coerción entre ESPIRITU y ENERGIA
+        if {self.tipo, otro.tipo} == {TipoNahual.ESPIRITU, TipoNahual.ENERGIA}:
+            return True
+        return False
+
+    def comparar_con(self, otro: 'Valor', operador: str) -> 'Valor':
+        """Realiza una comparación entre valores."""
+        if not self.es_compatible_con(otro):
+            raise TipoError(f"No se pueden comparar valores de tipo {self.tipo} y {otro.tipo}")
+
+        resultado = False
+        if operador == 'mayor':
+            resultado = self.valor > otro.valor
+        elif operador == 'menor':
+            resultado = self.valor < otro.valor
+        elif operador == 'igual':
+            resultado = self.valor == otro.valor
+
+        return Valor(TipoNahual.VERDAD, resultado)
+
+    def convertir_a(self, tipo_destino: TipoNahual) -> 'Valor':
+        """Intenta convertir el valor a otro tipo"""
+        if self.tipo == tipo_destino:
+            return self
+
+        conversiones = {
+            (TipoNahual.ESPIRITU, TipoNahual.ENERGIA): lambda x: float(x),
+            (TipoNahual.ENERGIA, TipoNahual.ESPIRITU): lambda x: int(x),
+            (TipoNahual.ESPIRITU, TipoNahual.MANTRA): lambda x: str(x),
+            (TipoNahual.ENERGIA, TipoNahual.MANTRA): lambda x: str(x),
+            (TipoNahual.MANTRA, TipoNahual.ESPIRITU): lambda x: int(x),
+            (TipoNahual.MANTRA, TipoNahual.ENERGIA): lambda x: float(x),
+        }
+
+        try:
+            conversion = conversiones.get((self.tipo, tipo_destino))
+            if conversion:
+                return Valor(tipo_destino, conversion(self.valor))
+            raise TipoError(f"No se puede convertir de {self.tipo} a {tipo_destino}")
+        except (ValueError, TypeError) as e:
+            raise TipoError(f"Error al convertir valor: {e}")
+
+
+class TipoError(Exception):
+    def __init__(self, mensaje: str, valor: Optional[Valor] = None):
+        self.mensaje = mensaje
+        self.valor = valor
+        self.posicion = valor.posicion if valor else None
+
+    def __str__(self):
+        if self.posicion:
+            return f"Error de tipo en {self.posicion}: {self.mensaje}"
+        return f"Error de tipo: {self.mensaje}"
+
+
+### Archivo: .\src\nahual\type_checker.py
+# src/nahual/type_checker.py
+
+from typing import Optional
+from .types import TipoNahual, Valor, TipoError
+from .error_handler import ErrorTipos, Ubicacion
+
+
+class VerificadorTipos:
+    """Sistema de verificación de tipos para NahualScript."""
+
+    @staticmethod
+    def verificar_asignacion(valor: Valor, tipo_destino: TipoNahual, ubicacion: Optional[Ubicacion] = None) -> None:
+        """Verifica que un valor sea compatible con el tipo de destino."""
+        if not valor.es_compatible_con(Valor(tipo_destino, None)):
+            raise ErrorTipos(
+                f"Tipo incompatible en asignación",
+                tipo_esperado=tipo_destino.value,
+                tipo_recibido=valor.tipo.value,
+                ubicacion=ubicacion
+            )
+
+    @staticmethod
+    def verificar_operacion(operador: str, izq: Valor, der: Valor, ubicacion: Optional[Ubicacion] = None) -> TipoNahual:
+        """Verifica y retorna el tipo resultante de una operación binaria."""
+        # Operaciones aritméticas
+        if operador in {'unir', 'separar', 'multiplicar', 'dividir', 'residuo'}:
+            if not izq.tipo in {TipoNahual.ESPIRITU, TipoNahual.ENERGIA}:
+                raise ErrorTipos(
+                    f"Operador {operador} requiere operandos numéricos",
+                    tipo_esperado="espiritu/energia",
+                    tipo_recibido=izq.tipo.value,
+                    ubicacion=ubicacion
+                )
+            if not der.tipo in {TipoNahual.ESPIRITU, TipoNahual.ENERGIA}:
+                raise ErrorTipos(
+                    f"Operador {operador} requiere operandos numéricos",
+                    tipo_esperado="espiritu/energia",
+                    tipo_recibido=der.tipo.value,
+                    ubicacion=ubicacion
+                )
+            # Si alguno es energia, el resultado es energia
+            return TipoNahual.ENERGIA if TipoNahual.ENERGIA in {izq.tipo, der.tipo} else TipoNahual.ESPIRITU
+
+        # Concatenación de mantras
+        elif operador == 'unir' and izq.tipo == TipoNahual.MANTRA:
+            if not der.tipo == TipoNahual.MANTRA:
+                raise ErrorTipos(
+                    f"No se puede unir mantra con {der.tipo.value}",
+                    tipo_esperado="mantra",
+                    tipo_recibido=der.tipo.value,
+                    ubicacion=ubicacion
+                )
+            return TipoNahual.MANTRA
+
+        # Operaciones lógicas
+        elif operador in {'y', 'o'}:
+            if not izq.tipo == TipoNahual.VERDAD:
+                raise ErrorTipos(
+                    f"Operador {operador} requiere operandos de tipo verdad",
+                    tipo_esperado="verdad",
+                    tipo_recibido=izq.tipo.value,
+                    ubicacion=ubicacion
+                )
+            if not der.tipo == TipoNahual.VERDAD:
+                raise ErrorTipos(
+                    f"Operador {operador} requiere operandos de tipo verdad",
+                    tipo_esperado="verdad",
+                    tipo_recibido=der.tipo.value,
+                    ubicacion=ubicacion
+                )
+            return TipoNahual.VERDAD
+
+        # Comparaciones
+        elif operador in {'igual', 'mayor', 'menor', 'mayor_igual', 'menor_igual'}:
+            if not izq.es_compatible_con(der):
+                raise ErrorTipos(
+                    f"No se pueden comparar tipos diferentes",
+                    tipo_esperado=izq.tipo.value,
+                    tipo_recibido=der.tipo.value,
+                    ubicacion=ubicacion
+                )
+            return TipoNahual.VERDAD
+
+        raise ValueError(f"Operador desconocido: {operador}")
+
+    @staticmethod
+    def verificar_condicion(valor: Valor, ubicacion: Optional[Ubicacion] = None) -> None:
+        """Verifica que un valor sea utilizable como condición."""
+        if valor.tipo != TipoNahual.VERDAD:
+            raise ErrorTipos(
+                "La condición debe ser de tipo verdad",
+                tipo_esperado="verdad",
+                tipo_recibido=valor.tipo.value,
+                ubicacion=ubicacion
+            )
+
+    @staticmethod
+    def inferir_tipo_literal(valor: Any) -> TipoNahual:
+        """Infiere el tipo de un valor literal."""
+        if isinstance(valor, bool):
+            return TipoNahual.VERDAD
+        elif isinstance(valor, int):
+            return TipoNahual.ESPIRITU
+        elif isinstance(valor, float):
+            return TipoNahual.ENERGIA
+        elif isinstance(valor, str):
+            return TipoNahual.MANTRA
+        elif isinstance(valor, list):
+            return TipoNahual.LISTA
+        raise ValueError(f"No se puede inferir tipo para: {type(valor)}")
+
+    @staticmethod
+    def es_numerico(tipo: TipoNahual) -> bool:
+        """Verifica si un tipo es numérico."""
+        return tipo in {TipoNahual.ESPIRITU, TipoNahual.ENERGIA}
+
+### Archivo: .\src\nahual\__init__.py
+VERSION = '0.1.0'
+
+### Archivo: .\src\nahual\__main__.py
+import sys
+from pathlib import Path
+
+
+def mensaje_ayuda():
+    print('''🔮 NahualScript - Lenguaje de Programación Místico 🔮
+
+Uso: python -m nahual <archivo.nhl> [opciones]
+Opciones:
+  --debug    Muestra información detallada de la ejecución
+  --help     Muestra este mensaje de ayuda
+    ''')
+
+
+def main():
+    if len(sys.argv) < 2 or '--help' in sys.argv:
+        mensaje_ayuda()
+        sys.exit(0)
+
+    debug = '--debug' in sys.argv
+    archivo = sys.argv[1]
+
+    try:
+        with open(archivo, 'r', encoding='utf-8') as f:
+            codigo = f.read()
+
+        from nahual.interpreter import NahualInterpreter
+        print('🌟 Iniciando ritual de compilación...')
+        interprete = NahualInterpreter(debug=debug)
+        resultado = interprete.run(codigo)
+        print('✨ Ritual completado exitosamente')
+        return resultado
+
+    except FileNotFoundError:
+        print(f'❌ Error: No se encuentra el grimorio {archivo}')
+        sys.exit(1)
+    except Exception as e:
+        print(f'💫 Error en el ritual: {str(e)}')
+        if debug:
+            raise
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
+
+### Archivo: .\src\nahualscript.egg-info\dependency_links.txt
+
+
+
+### Archivo: .\src\nahualscript.egg-info\entry_points.txt
+[console_scripts]
+nahual = nahual.__main__:main
+
+
+### Archivo: .\src\nahualscript.egg-info\requires.txt
+ply>=3.11
+
+
+### Archivo: .\src\nahualscript.egg-info\SOURCES.txt
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+src/nahual/__init__.py
+src/nahual/__main__.py
+src/nahual/environment.py
+src/nahual/error_handler.py
+src/nahual/function.py
+src/nahual/interpreter.py
+src/nahual/lexer.py
+src/nahual/logger.py
+src/nahual/parser.py
+src/nahual/parsetab.py
+src/nahual/type_checker.py
+src/nahual/types.py
+src/nahualscript.egg-info/PKG-INFO
+src/nahualscript.egg-info/SOURCES.txt
+src/nahualscript.egg-info/dependency_links.txt
+src/nahualscript.egg-info/entry_points.txt
+src/nahualscript.egg-info/requires.txt
+src/nahualscript.egg-info/top_level.txt
+test/test_integration.py
+test/test_interpreter.py
+test/test_lexer.py
+test/test_parser.py
+test/test_suite.py
+
+### Archivo: .\src\nahualscript.egg-info\top_level.txt
+nahual
+
+
+### Archivo: .\test\test_integration.py
+import pytest
+from nahual.interpreter import NahualInterpreter
+
+def test_fibonacci():
+    interpreter = NahualInterpreter(debug=True)
+    source = """
+    sabiduria fibonacci(espiritu n) {
+        vision(n menor 2) {
+            retornar n;
+        }
+        retornar fibonacci(n separar 1) unir fibonacci(n separar 2);
+    }
+    """
+    interpreter.run(source)
+    result = interpreter.execute(('llamada_funcion', 'fibonacci', [10]))
+    assert result.valor == 55
+
+### Archivo: .\test\test_interpreter.py
+from nahual.error_handler import InterpreterError
+from nahual.types import TipoNahual, Valor
+from nahual.interpreter import NahualInterpreter
+
+import pytest
+
+from src.nahual.error_handler import ErrorTipo, ErrorSintaxis
+from src.nahual.types import TipoError
+
+
+def test_calculadora():
+    interpreter = NahualInterpreter()
+    with open('examples/programas/calculadora.nhl', 'r') as f:
+        source = f.read()
+    interpreter.run(source)
+
+    # Verificar resultados
+    assert interpreter.entorno_global.obtener_variable('x').valor == 10
+    assert interpreter.entorno_global.obtener_variable('y').valor == 5
+
+
+def test_factorial():
+    interpreter = NahualInterpreter()
+    source = '''
+    sabiduria factorial(espiritu n) {
+        vision (n menor 2) {
+            retornar 1;
+        }
+        retornar n multiplicar factorial(n separar 1);
+    }
+    '''
+    interpreter.run(source)
+    resultado = interpreter.ejecutar_llamada_funcion('factorial', [Valor(TipoNahual.ESPIRITU, 5)])
+    assert resultado.valor == 120
+
+
+def test_error_handling():
+    interpreter = NahualInterpreter()
+    with pytest.raises(TipoError):
+        interpreter.run('espiritu x := "no es un número";')
+
+
+def test_listas():
+    interpreter = NahualInterpreter()
+    source = """
+    lista numeros := [1, 2, 3];
+    espiritu len := longitud(numeros);
+    numeros.agregar(4);
+    """
+    interpreter.run(source)
+
+    numeros = interpreter.entorno_global.obtener_variable('numeros')
+    assert numeros.tipo == TipoNahual.LISTA
+    assert len(numeros.valor.elementos) == 4
+    assert interpreter.entorno_global.obtener_variable('len').valor == 3
+
+
+def test_error_tipos():
+    interpreter = NahualInterpreter()
+    with pytest.raises(ErrorTipo) as excinfo:
+        interpreter.run('espiritu x := "no es un número";')
+    assert "Tipo inválido" in str(excinfo.value)
+
+
+def test_error_sintaxis():
+    interpreter = NahualInterpreter()
+    with pytest.raises(ErrorSintaxis) as excinfo:
+        interpreter.run('espiritu x := ;')
+    assert "Error de sintaxis" in str(excinfo.value)
+
+### Archivo: .\test\test_lexer.py
+# tests/test_lexer.py
+import pytest
+from nahual.lexer import NahualLexer
+
+
+def test_hola_mundo():
+    lexer = NahualLexer()
+    programa = '''
+    // Mi primer programa en NahualScript
+    sabiduria principal() {
+        invocar "¡Hola, mundo místico!";
+    }
+    '''
+    lexer.input(programa)
+    tokens = []
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        tokens.append(tok)
+
+    # Verificar tokens esperados
+    assert len(tokens) == 8  # Contar tokens esperados
+    assert tokens[0].type == 'FUNCTION'
+    assert tokens[1].type == 'ID'
+
+### Archivo: .\test\test_parser.py
+
+
+### Archivo: .\test\test_suite.py
+# test/test_suite.py
+
+import pytest
+from pathlib import Path
+from nahual.interpreter import NahualInterpreter
+from nahual.types import TipoNahual, Valor
+from nahual.error_handler import ErrorNahual, ErrorTipos, ErrorSintaxis, ErrorSemantico
+
+
+class TestNahualScript:
+    """Suite de pruebas completa para NahualScript."""
+
+    @pytest.fixture
+    def interpreter(self):
+        """Fixture que provee un intérprete limpio para cada prueba."""
+        return NahualInterpreter(debug=True)
+
+    def test_tipos_basicos(self, interpreter):
+        """Prueba la declaración y manejo de tipos básicos."""
+        codigo = """
+        espiritu numero := 42;
+        energia decimal := 3.14;
+        mantra texto := "hola mundo";
+        verdad booleano := cierto;
+        """
+        interpreter.run(codigo)
+
+        assert interpreter.entorno_global.obtener_variable('numero').valor == 42
+        assert interpreter.entorno_global.obtener_variable('decimal').valor == 3.14
+        assert interpreter.entorno_global.obtener_variable('texto').valor == "hola mundo"
+        assert interpreter.entorno_global.obtener_variable('booleano').valor is True
+
+    def test_operaciones_aritmeticas(self, interpreter):
+        """Prueba las operaciones aritméticas básicas."""
+        codigo = """
+        espiritu a := 10;
+        espiritu b := 5;
+        espiritu suma := a unir b;
+        espiritu resta := a separar b;
+        espiritu mult := a multiplicar b;
+        espiritu div := a dividir b;
+        """
+        interpreter.run(codigo)
+
+        assert interpreter.entorno_global.obtener_variable('suma').valor == 15
+        assert interpreter.entorno_global.obtener_variable('resta').valor == 5
+        assert interpreter.entorno_global.obtener_variable('mult').valor == 50
+        assert interpreter.entorno_global.obtener_variable('div').valor == 2
+
+    def test_control_flujo(self, interpreter):
+        """Prueba las estructuras de control de flujo."""
+        codigo = """
+        espiritu resultado := 0;
+        espiritu i := 0;
+
+        ritual(i menor 5) {
+            resultado := resultado unir i;
+            i := i unir 1;
+        }
+        """
+        interpreter.run(codigo)
+        assert interpreter.entorno_global.obtener_variable('resultado').valor == 10
+
+    def test_funciones(self, interpreter):
+        """Prueba la definición y llamada de funciones."""
+        codigo = """
+        sabiduria factorial(espiritu n) {
+            vision(n menor 2) {
+                retornar 1;
+            }
+            retornar n multiplicar factorial(n separar 1);
+        }
+
+        espiritu resultado := factorial(5);
+        """
+        interpreter.run(codigo)
+        assert interpreter.entorno_global.obtener_variable('resultado').valor == 120
+
+    def test_manejo_errores_tipos(self, interpreter):
+        """Prueba el manejo de errores de tipos."""
+        with pytest.raises(ErrorTipos) as excinfo:
+            interpreter.run('espiritu x := "no es un número";')
+        assert "Tipo incompatible" in str(excinfo.value)
+
+    def test_manejo_errores_sintaxis(self, interpreter):
+        """Prueba el manejo de errores de sintaxis."""
+        with pytest.raises(ErrorSintaxis) as excinfo:
+            interpreter.run('espiritu x := ;')
+        assert "Error de sintaxis" in str(excinfo.value)
+
+    def test_alcance_variables(self, interpreter):
+        """Prueba el alcance de variables en diferentes contextos."""
+        codigo = """
+        espiritu global := 1;
+
+        sabiduria prueba_alcance() {
+            espiritu local := 2;
+            retornar global unir local;
+        }
+
+        espiritu resultado := prueba_alcance();
+        """
+        interpreter.run(codigo)
+        assert interpreter.entorno_global.obtener_variable('resultado').valor == 3
+
+    def test_recursion(self, interpreter):
+        """Prueba funciones recursivas."""
+        codigo = """
+        sabiduria fibonacci(espiritu n) {
+            vision(n menor 2) {
+                retornar n;
+            }
+            retornar fibonacci(n separar 1) unir fibonacci(n separar 2);
+        }
+
+        espiritu resultado := fibonacci(6);
+        """
+        interpreter.run(codigo)
+        assert interpreter.entorno_global.obtener_variable('resultado').valor == 8
+
+    def test_funciones_nativas(self, interpreter):
+        """Prueba las funciones nativas del lenguaje."""
+        codigo = """
+        mantra entrada := percibir("Test");
+        invocar entrada;
+        """
+        # Simular entrada del usuario
+        import builtins
+        original_input = builtins.input
+        builtins.input = lambda _: "entrada simulada"
+
+        try:
+            interpreter.run(codigo)
+            valor = interpreter.entorno_global.obtener_variable('entrada')
+            assert valor.tipo == TipoNahual.MANTRA
+            assert valor.valor == "entrada simulada"
+        finally:
+            builtins.input = original_input
+
+    def test_errores_ejecucion(self, interpreter):
+        """Prueba errores durante la ejecución."""
+        with pytest.raises(ErrorNahual) as excinfo:
+            interpreter.run('''
+            espiritu x := 10;
+            espiritu y := 0;
+            espiritu resultado := x dividir y;
+            ''')
+        assert "División por cero" in str(excinfo.value)
+
+    def test_conversion_tipos(self, interpreter):
+        """Prueba la conversión entre tipos compatibles."""
+        codigo = """
+        energia decimal := 3.14;
+        espiritu entero := convertir(decimal, "espiritu");
+        mantra texto := convertir(entero, "mantra");
+        """
+        interpreter.run(codigo)
+        assert interpreter.entorno_global.obtener_variable('entero').valor == 3
+        assert interpreter.entorno_global.obtener_variable('texto').valor == "3"
+
+    @pytest.mark.parametrize("programa_ejemplo", [
+        "hola_mundo.nhl",
+        "calculadora.nhl",
+        "factorial.nhl",
+        "fibonacci.nhl"
+    ])
+    def test_programas_ejemplo(self, interpreter, programa_ejemplo):
+        """Prueba los programas de ejemplo incluidos."""
+        ruta = Path("examples") / "programas" / programa_ejemplo
+        with open(ruta, encoding='utf-8') as f:
+            codigo = f.read()
+
+        interpreter.run(codigo)
+        # La prueba pasa si no hay excepciones
+
+    def test_listas(self, interpreter):
+        """Prueba el manejo de listas."""
+        codigo = """
+        lista numeros := [1, 2, 3];
+        numeros.agregar(4);
+        espiritu longitud := longitud(numeros);
+        """
+        interpreter.run(codigo)
+
+        numeros = interpreter.entorno_global.obtener_variable('numeros')
+        assert numeros.tipo == TipoNahual.LISTA
+        assert len(numeros.valor.elementos) == 4
+        assert interpreter.entorno_global.obtener_variable('longitud').valor == 4
+
